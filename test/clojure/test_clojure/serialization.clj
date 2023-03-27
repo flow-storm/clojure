@@ -16,12 +16,17 @@
 
 (defn- serialize
   "Serializes a single object, returning a byte array."
-  [v]
-  (with-open [bout (ByteArrayOutputStream.)
-              oos (ObjectOutputStream. bout)]
-    (.writeObject oos v)
-    (.flush oos)
-    (.toByteArray bout)))
+  [v]  
+  (let [v (if (symbol? v)
+            ;; STORM_NOTE: The modified LispReader will add a :clojure.storm/coord key with the coordinates
+            ;; and we are not interested in serializing that
+            (with-meta v (dissoc (meta v) :clojure.storm/coord)) 
+            v)]
+    (with-open [bout (ByteArrayOutputStream.)
+               oos (ObjectOutputStream. bout)]
+     (.writeObject oos v)
+     (.flush oos)
+     (.toByteArray bout))))
 
 (defn- deserialize
   "Deserializes and returns a single object from the given byte array."
