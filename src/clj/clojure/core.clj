@@ -5829,7 +5829,7 @@
 (declare gen-class)
 
 (defmacro with-loading-context [& body]
-  `((fn loading# [] 
+  `((fn loading# ^:clojure.storm/skip [] 
         (. clojure.lang.Var (pushThreadBindings {clojure.lang.Compiler/LOADER  
                                                  (.getClassLoader (.getClass ^Object loading#))}))
         (try

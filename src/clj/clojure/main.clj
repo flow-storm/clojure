@@ -12,7 +12,8 @@
        :author "Stephen C. Gilardi and Rich Hickey"}
   clojure.main
   (:refer-clojure :exclude [with-bindings])
-  (:require [clojure.spec.alpha :as spec])
+  (:require [clojure.spec.alpha :as spec]
+            [clojure.storm.repl :as storm-repl])
   (:import (java.io StringReader BufferedWriter FileWriter)
            (java.nio.file Files)
            (java.nio.file.attribute FileAttribute)
@@ -20,6 +21,8 @@
                          LineNumberingPushbackReader RT LispReader$ReaderException))
   ;;(:use [clojure.repl :only (demunge root-cause stack-element-str)])
   )
+
+(storm-repl/maybe-init-flow-storm)
 
 (declare main)
 
@@ -411,6 +414,7 @@ by default when a new command-line REPL is started."} repl-requires
   [& options]
   (let [cl (.getContextClassLoader (Thread/currentThread))]
     (.setContextClassLoader (Thread/currentThread) (clojure.lang.DynamicClassLoader. cl)))
+  
   (let [{:keys [init need-prompt prompt flush read eval print caught]
          :or {init        #()
               need-prompt (if (instance? LineNumberingPushbackReader *in*)
@@ -433,18 +437,18 @@ by default when a new command-line REPL is started."} repl-requires
                           (with-read-known (read request-prompt request-exit))
                           (catch LispReader$ReaderException e
                             (throw (ex-info nil {:clojure.error/phase :read-source} e))))]
-             (or (#{request-prompt request-exit} input)
-                 (let [value (binding [*read-eval* read-eval] (eval input))]
-                   (set! *3 *2)
-                   (set! *2 *1)
-                   (set! *1 value)
-                   (try
-                     (print value)
-                     (catch Throwable e
-                       (throw (ex-info nil {:clojure.error/phase :print-eval-result} e)))))))
-           (catch Throwable e
-             (caught e)
-             (set! *e e))))]
+              (or (#{request-prompt request-exit} input)
+                  (let [value (binding [*read-eval* read-eval] (eval input))]
+                    (set! *3 *2)
+                    (set! *2 *1)
+                    (set! *1 value)
+                    (try
+                      (print value)
+                      (catch Throwable e
+                        (throw (ex-info nil {:clojure.error/phase :print-eval-result} e)))))))
+            (catch Throwable e              
+              (caught e)
+              (set! *e e))))]
     (with-bindings
      (binding [*repl* true]
        (try
@@ -521,7 +525,7 @@ by default when a new command-line REPL is started."} repl-requires
   present"
   [[_ & args] inits]
   (when-not (some #(= eval-opt (init-dispatch (first %))) inits)
-    (println "Clojure" (clojure-version)))
+    (println "ClojureStorm" (clojure-version)))
   (repl :init (fn []
                 (initialize args inits)
                 (apply require repl-requires)))
