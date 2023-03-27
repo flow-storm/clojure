@@ -38,6 +38,9 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import clojure.storm.Emitter;
+import clojure.storm.Utils;
+
 public class LispReader{
 
 static final Symbol QUOTE = Symbol.intern("quote");
@@ -83,6 +86,8 @@ static Var GENSYM_ENV = Var.create(null).setDynamic();
 //sorted-map num->gensymbol
 static Var ARG_ENV = Var.create(null).setDynamic();
 static IFn ctorReader = new CtorReader();
+
+public static Keyword COORD_KEY = Keyword.intern("clojure.storm", "coord");
 
 // Dynamic var set to true in a read-cond context
 static Var READ_COND_ENV = Var.create(null).setDynamic();
@@ -215,11 +220,11 @@ static public Object read(PushbackReader r, boolean eofIsError, Object eofValue,
 static public Object read(PushbackReader r, boolean eofIsError, Object eofValue, boolean isRecursive, Object opts)
 {
 	// start with pendingForms null as reader conditional splicing is not allowed at top level
-	return read(r, eofIsError, eofValue, null, null, isRecursive, opts, null, (Resolver) RT.READER_RESOLVER.deref());
+    return read(r, eofIsError, eofValue, null, null, isRecursive, opts, null, (Resolver) RT.READER_RESOLVER.deref());
 }
 
 static private Object read(PushbackReader r, boolean eofIsError, Object eofValue, boolean isRecursive, Object opts, Object pendingForms) {
-	return read(r, eofIsError, eofValue, null, null, isRecursive, opts, ensurePending(pendingForms), (Resolver) RT.READER_RESOLVER.deref());
+    return read(r, eofIsError, eofValue, null, null, isRecursive, opts, ensurePending(pendingForms), (Resolver) RT.READER_RESOLVER.deref());
 }
 
 static private Object ensurePending(Object pendingForms) {

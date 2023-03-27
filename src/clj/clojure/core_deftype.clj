@@ -172,31 +172,31 @@
       (eqhash [[i m]] 
         [(conj i 'clojure.lang.IHashEq)
          (conj m
-               `(hasheq [this#] (let [hq# ~'__hasheq]
+               `(hasheq ^:clojure.storm/skip [this#] (let [hq# ~'__hasheq]
                                   (if (zero? hq#)
                                     (let [h# (int (bit-xor ~type-hash (clojure.lang.APersistentMap/mapHasheq this#)))]
                                       (set! ~'__hasheq h#)
                                       h#)
                                     hq#)))
-               `(hashCode [this#] (let [hash# ~'__hash]
+               `(hashCode ^:clojure.storm/skip [this#] (let [hash# ~'__hash]
                                     (if (zero? hash#)
                                       (let [h# (clojure.lang.APersistentMap/mapHash this#)]
                                         (set! ~'__hash h#)
                                         h#)
                                       hash#)))
-               `(equals [this# ~gs] (clojure.lang.APersistentMap/mapEquals this# ~gs)))])
+               `(equals ^:clojure.storm/skip [this# ~gs] (clojure.lang.APersistentMap/mapEquals this# ~gs)))])
       (iobj [[i m]] 
             [(conj i 'clojure.lang.IObj)
-             (conj m `(meta [this#] ~'__meta)
-                   `(withMeta [this# ~gs] (new ~tagname ~@(replace {'__meta gs} fields))))])
+             (conj m `(meta ^:clojure.storm/skip[this#] ~'__meta)
+                   `(withMeta ^:clojure.storm/skip [this# ~gs] (new ~tagname ~@(replace {'__meta gs} fields))))])
       (ilookup [[i m]] 
          [(conj i 'clojure.lang.ILookup 'clojure.lang.IKeywordLookup)
-          (conj m `(valAt [this# k#] (.valAt this# k# nil))
-                `(valAt [this# k# else#] 
+          (conj m `(valAt ^:clojure.storm/skip [this# k#] (.valAt this# k# nil))
+                `(valAt ^:clojure.storm/skip [this# k# else#] 
                    (case k# ~@(mapcat (fn [fld] [(keyword fld) fld]) 
                                        base-fields)
                          (get ~'__extmap k# else#)))
-                `(getLookupThunk [this# k#]
+                `(getLookupThunk ^:clojure.storm/skip [this# k#]
                    (let [~'gclass (class this#)]              
                      (case k#
                            ~@(let [hinted-target (with-meta 'gtarget {:tag tagname})] 
@@ -204,7 +204,7 @@
                                 (fn [fld]
                                   [(keyword fld)
                                    `(reify clojure.lang.ILookupThunk
-                                           (get [~'thunk ~'gtarget]
+                                           (get ^:clojure.storm/skip [~'thunk ~'gtarget]
                                                 (if (identical? (class ~'gtarget) ~'gclass)
                                                   (. ~hinted-target ~(symbol (str "-" fld)))
                                                   ~'thunk)))])
@@ -213,48 +213,48 @@
       (imap [[i m]] 
             [(conj i 'clojure.lang.IPersistentMap)
              (conj m 
-                   `(count [this#] (+ ~(count base-fields) (count ~'__extmap)))
-                   `(empty [this#] (throw (UnsupportedOperationException. (str "Can't create empty: " ~(str classname)))))
-                   `(cons [this# e#] ((var imap-cons) this# e#))
-                   `(equiv [this# ~gs] 
+                   `(count ^:clojure.storm/skip [this#] (+ ~(count base-fields) (count ~'__extmap)))
+                   `(empty ^:clojure.storm/skip [this#] (throw (UnsupportedOperationException. (str "Can't create empty: " ~(str classname)))))
+                   `(cons ^:clojure.storm/skip [this# e#] ((var imap-cons) this# e#))
+                   `(equiv ^:clojure.storm/skip [this# ~gs] 
                         (boolean 
                          (or (identical? this# ~gs)
                              (when (identical? (class this#) (class ~gs))
                                (let [~gs ~(with-meta gs {:tag tagname})]
                                  (and  ~@(map (fn [fld] `(= ~fld (. ~gs ~(symbol (str "-" fld))))) base-fields)
                                        (= ~'__extmap (. ~gs ~'__extmap))))))))
-                   `(containsKey [this# k#] (not (identical? this# (.valAt this# k# this#))))
-                   `(entryAt [this# k#] (let [v# (.valAt this# k# this#)]
+                   `(containsKey ^:clojure.storm/skip [this# k#] (not (identical? this# (.valAt this# k# this#))))
+                   `(entryAt ^:clojure.storm/skip [this# k#] (let [v# (.valAt this# k# this#)]
                                             (when-not (identical? this# v#)
                                               (clojure.lang.MapEntry/create k# v#))))
-                   `(seq [this#] (seq (concat [~@(map #(list `clojure.lang.MapEntry/create (keyword %) %) base-fields)]
+                   `(seq ^:clojure.storm/skip [this#] (seq (concat [~@(map #(list `clojure.lang.MapEntry/create (keyword %) %) base-fields)]
                                               ~'__extmap)))
-                   `(iterator [~gs]
+                   `(iterator ^:clojure.storm/skip [~gs]
                         (clojure.lang.RecordIterator. ~gs [~@(map keyword base-fields)] (RT/iter ~'__extmap)))
-                   `(assoc [this# k# ~gs]
+                   `(assoc ^:clojure.storm/skip [this# k# ~gs]
                      (condp identical? k#
                        ~@(mapcat (fn [fld]
                                    [(keyword fld) (list* `new tagname (replace {fld gs} (remove '#{__hash __hasheq} fields)))])
                                  base-fields)
                        (new ~tagname ~@(remove '#{__extmap __hash __hasheq} fields) (assoc ~'__extmap k# ~gs))))
-                   `(without [this# k#] (if (contains? #{~@(map keyword base-fields)} k#)
+                   `(without ^:clojure.storm/skip [this# k#] (if (contains? #{~@(map keyword base-fields)} k#)
                                             (dissoc (with-meta (into {} this#) ~'__meta) k#)
                                             (new ~tagname ~@(remove '#{__extmap __hash __hasheq} fields)
                                                  (not-empty (dissoc ~'__extmap k#))))))])
       (ijavamap [[i m]]
                 [(conj i 'java.util.Map 'java.io.Serializable)
                  (conj m
-                       `(size [this#] (.count this#))
-                       `(isEmpty [this#] (= 0 (.count this#)))
-                       `(containsValue [this# v#] (boolean (some #{v#} (vals this#))))
-                       `(get [this# k#] (.valAt this# k#))
-                       `(put [this# k# v#] (throw (UnsupportedOperationException.)))
-                       `(remove [this# k#] (throw (UnsupportedOperationException.)))
-                       `(putAll [this# m#] (throw (UnsupportedOperationException.)))
-                       `(clear [this#] (throw (UnsupportedOperationException.)))
-                       `(keySet [this#] (set (keys this#)))
-                       `(values [this#] (vals this#))
-                       `(entrySet [this#] (set this#)))])
+                       `(size ^:clojure.storm/skip [this#] (.count this#))
+                       `(isEmpty ^:clojure.storm/skip [this#] (= 0 (.count this#)))
+                       `(containsValue ^:clojure.storm/skip [this# v#] (boolean (some #{v#} (vals this#))))
+                       `(get ^:clojure.storm/skip [this# k#] (.valAt this# k#))
+                       `(put ^:clojure.storm/skip [this# k# v#] (throw (UnsupportedOperationException.)))
+                       `(remove ^:clojure.storm/skip [this# k#] (throw (UnsupportedOperationException.)))
+                       `(putAll ^:clojure.storm/skip [this# m#] (throw (UnsupportedOperationException.)))
+                       `(clear ^:clojure.storm/skip [this#] (throw (UnsupportedOperationException.)))
+                       `(keySet ^:clojure.storm/skip [this#] (set (keys this#)))
+                       `(values ^:clojure.storm/skip [this#] (vals this#))
+                       `(entrySet ^:clojure.storm/skip [this#] (set this#)))])
       ]
      (let [[i m] (-> [interfaces methods] irecord eqhash iobj ilookup imap ijavamap)]
        `(deftype* ~(symbol (name (ns-name *ns*)) (name tagname)) ~classname
@@ -282,7 +282,7 @@
         docstring (str "Positional factory function for class " classname ".")]
     `(defn ~fn-name
        ~docstring
-       [~@field-args ~@(if (seq over) '[& overage] [])]
+       ^:clojure.storm/skip [~@field-args ~@(if (seq over) '[& overage] [])]
        ~(if (seq over)
           `(if (= (count ~'overage) ~over-count)
              (new ~classname
@@ -400,7 +400,7 @@
        ~(build-positional-factory gname classname fields)
        (defn ~(symbol (str 'map-> gname))
          ~(str "Factory function for class " classname ", taking a map of keywords to field values.")
-         ([m#] (~(symbol (str classname "/create"))
+         (^:clojure.storm/skip [m#] (~(symbol (str classname "/create"))
                 (if (instance? clojure.lang.MapEquivalence m#) m# (into {} m#)))))
        ~classname)))
 
@@ -607,7 +607,7 @@
                     (let [gargs (map #(gensym (str "gf__" % "__")) args)
                           target (first gargs)]
                       (if extend-via-meta
-                        `([~@gargs]
+                        `(^:clojure.storm/skip [~@gargs]
                             (let [cache# (.__methodImplCache ~gthis)
                                   f# (.fnFor cache# (clojure.lang.Util/classOf ~target))]
                               (if (identical? f# ~ginterf)
@@ -617,7 +617,7 @@
                                   (if f#
                                     (f# ~@gargs)
                                     ((-cache-protocol-fn ~gthis ~target ~on-interface ~ginterf) ~@gargs))))))
-                        `([~@gargs]
+                        `(^:clojure.storm/skip [~@gargs]
                             (let [cache# (.__methodImplCache ~gthis)
                                   f# (.fnFor cache# (clojure.lang.Util/classOf ~target))]
                               (if f#
@@ -683,33 +683,34 @@
                           (map #(vector m (vec (repeat (dec (count %))'Object)) 'Object) 
                                (:arglists sig))))
                       (vals sigs))]
-  `(do
-     (defonce ~name {})
-     (gen-interface :name ~iname :methods ~meths)
-     (alter-meta! (var ~name) assoc :doc ~(:doc opts))
-     ~(when sigs
-        `(#'assert-same-protocol (var ~name) '~(map :name (vals sigs))))
-     (alter-var-root (var ~name) merge 
-                     (assoc ~opts 
-                       :sigs '~sigs 
-                       :var (var ~name)
-                       :method-map 
-                         ~(and (:on opts)
-                               (apply hash-map 
+    
+    `(do
+       ^:clojure.storm/dont-tag (defonce ~name {})
+       ^:clojure.storm/dont-tag (gen-interface :name ~iname :methods ~meths)
+       ^:clojure.storm/dont-tag (alter-meta! (var ~name) assoc :doc ~(:doc opts))
+       ~(when sigs
+          `(#'assert-same-protocol (var ~name) '~(map :name (vals sigs))))
+       ^:clojure.storm/dont-tag (alter-var-root (var ~name) merge 
+                       (assoc ~opts 
+                              :sigs '~sigs 
+                              :var (var ~name)
+                              :method-map 
+                              ~(and (:on opts)
+                                    (apply hash-map 
+                                           (mapcat 
+                                            (fn [s] 
+                                              [(keyword (:name s)) (keyword (or (:on s) (:name s)))])
+                                            (vals sigs))))
+                              :method-builders 
+                              ~(apply hash-map 
                                       (mapcat 
-                                       (fn [s] 
-                                         [(keyword (:name s)) (keyword (or (:on s) (:name s)))])
-                                       (vals sigs))))
-                       :method-builders 
-                        ~(apply hash-map 
-                                (mapcat 
-                                 (fn [s]
-                                   [`(intern *ns* (with-meta '~(:name s) (merge '~s {:protocol (var ~name)})))
-                                    (emit-method-builder (:on-interface opts) (:name s) (:on s) (:arglists s)
-                                                         (:extend-via-metadata opts))])
-                                 (vals sigs)))))
-     (-reset-methods ~name)
-     '~name)))
+                                       (fn [s]
+                                         [`(intern *ns* (with-meta '~(:name s) (merge '~s {:protocol (var ~name)})))
+                                          (emit-method-builder (:on-interface opts) (:name s) (:on s) (:arglists s)
+                                                               (:extend-via-metadata opts))])
+                                       (vals sigs)))))
+       (-reset-methods ~name)
+       '~name)))
 
 (defmacro defprotocol 
   "A protocol is a named set of named methods and their signatures:
@@ -827,16 +828,17 @@
              (map #(cons `fn (drop 1 %)) fs))])
 
 (defn- emit-hinted-impl [c [p fs]]
-  (let [hint (fn [specs]
+  (let [hint (fn [[mname & specs]]
                (let [specs (if (vector? (first specs)) 
                                         (list specs) 
                                         specs)]
                  (map (fn [[[target & args] & body]]
-                        (cons (apply vector (vary-meta target assoc :tag c) args)
+                        (cons (with-meta (apply vector (vary-meta target assoc :tag c) args)
+                                {:clojure.storm/fn-trace-sym mname})
                               body))
                       specs)))]
     [p (zipmap (map #(-> % first name keyword) fs)
-               (map #(cons `fn (hint (drop 1 %))) fs))]))
+               (map #(cons `fn (hint %)) fs))]))
 
 (defn- emit-extend-type [c specs]
   (let [impls (parse-impls specs)]
