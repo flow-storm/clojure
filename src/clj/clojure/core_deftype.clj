@@ -606,7 +606,7 @@
                     (let [gargs (map #(gensym (str "gf__" % "__")) args)
                           target (first gargs)]
                       (if extend-via-meta
-                        `([~@gargs]
+                        `(^:clojure.storm/skip [~@gargs]
                             (let [cache# (.__methodImplCache ~gthis)
                                   f# (.fnFor cache# (clojure.lang.Util/classOf ~target))]
                               (if (identical? f# ~ginterf)
@@ -616,7 +616,7 @@
                                   (if f#
                                     (f# ~@gargs)
                                     ((-cache-protocol-fn ~gthis ~target ~on-interface ~ginterf) ~@gargs))))))
-                        `([~@gargs]
+                        `(^:clojure.storm/skip [~@gargs]
                             (let [cache# (.__methodImplCache ~gthis)
                                   f# (.fnFor cache# (clojure.lang.Util/classOf ~target))]
                               (if f#
@@ -826,16 +826,17 @@
              (map #(cons `fn (drop 1 %)) fs))])
 
 (defn- emit-hinted-impl [c [p fs]]
-  (let [hint (fn [specs]
+  (let [hint (fn [[mname & specs]]
                (let [specs (if (vector? (first specs)) 
                                         (list specs) 
                                         specs)]
                  (map (fn [[[target & args] & body]]
-                        (cons (apply vector (vary-meta target assoc :tag c) args)
+                        (cons (with-meta (apply vector (vary-meta target assoc :tag c) args)
+                                {:clojure.storm/fn-trace-sym mname})
                               body))
                       specs)))]
     [p (zipmap (map #(-> % first name keyword) fs)
-               (map #(cons `fn (hint (drop 1 %))) fs))]))
+               (map #(cons `fn (hint %)) fs))]))
 
 (defn- emit-extend-type [c specs]
   (let [impls (parse-impls specs)]
