@@ -12,6 +12,7 @@
   <property name="cljsrc" location="${src}/clj"/>
   <property name="cljscript" location="${src}/script"/>
   <property name="test-script" location="${cljscript}/run_test.clj"/>
+  <property name="storm-test-script" location="${cljscript}/run_storm_test.clj"/>
   <property name="test-generative-script" location="${cljscript}/run_test_generative.clj"/>
   <property name="compile-script" location="${cljscript}/bootstrap_compile.clj"/>
   <property name="target" location="target"/>
@@ -59,6 +60,7 @@
       <arg value="clojure.core"/>
       <arg value="clojure.core.protocols"/>
       <arg value="clojure.core.server"/>
+      <arg value="clojure.storm.repl"/>
       <arg value="clojure.main"/>
       <arg value="clojure.set"/>
       <arg value="clojure.edn"/>
@@ -120,6 +122,10 @@
       <sysproperty key="clojure.test-clojure.exclude-namespaces"
                    value="#{clojure.test-clojure.compilation.load-ns clojure.test-clojure.ns-libs-load-later}"/>
       <sysproperty key="clojure.compiler.direct-linking" value="${directlinking}"/>
+      
+      <sysproperty key="clojure.storm.instrumentEnable" value="true"/>
+      <sysproperty key="clojure.storm.instrumentOnlyPrefixes" value="clojure.test-clojure.storm-test-code"/>
+      
       <classpath>
         <pathelement path="${maven.test.classpath}"/>
         <path location="${test-classes}"/>
@@ -128,6 +134,23 @@
 	<path location="${cljsrc}"/>
       </classpath>
       <arg value="${test-script}"/>
+    </java>
+  </target>
+
+  <target name="test-storm-example"
+          description="Run ClojureStorm tests without recompiling clojure."
+          depends="compile-tests"
+          unless="maven.test.skip">
+    <java classname="clojure.main" failonerror="true" fork="true">      
+      <sysproperty key="clojure.compiler.direct-linking" value="${directlinking}"/>
+      <classpath>
+        <pathelement path="${maven.test.classpath}"/>
+        <path location="${test-classes}"/>
+        <path location="${test}"/>
+        <path location="${build}"/>
+	    <path location="${cljsrc}"/>
+      </classpath>
+      <arg value="${storm-test-script}"/>
     </java>
   </target>
 
@@ -150,7 +173,7 @@
 
   <target name="test"
           description="Run all the tests"
-          depends="test-example,test-generative"/>
+          depends="test-example,test-generative"/> <!-- test-example,test-generative,test-storm-example -->
 
   <target name="build"
           description="Build Clojure (compilation only, no tests)."

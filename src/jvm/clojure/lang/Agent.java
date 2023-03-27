@@ -19,6 +19,8 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
+import clojure.storm.Tracer;
+
 public class Agent extends ARef {
 
 static class ActionQueue {
@@ -116,7 +118,8 @@ static class Action implements Runnable{
                 action.agent.notifyWatches(oldval,newval);
 				}
 			catch(Throwable e)
-				{
+				{                    
+				Tracer.handleThreadException(Thread.currentThread(), e);
 				error = e;
 				}
 
