@@ -12,7 +12,8 @@
        :author "Stephen C. Gilardi and Rich Hickey"}
   clojure.main
   (:refer-clojure :exclude [with-bindings])
-  (:require [clojure.spec.alpha :as spec])
+  (:require [clojure.spec.alpha :as spec]
+            [clojure.storm.repl :as storm-repl])
   (:import (java.io StringReader BufferedWriter FileWriter)
            (java.nio.file Files)
            (java.nio.file.attribute FileAttribute)
@@ -411,6 +412,12 @@ by default when a new command-line REPL is started."} repl-requires
   [& options]
   (let [cl (.getContextClassLoader (Thread/currentThread))]
     (.setContextClassLoader (Thread/currentThread) (clojure.lang.DynamicClassLoader. cl)))
+
+  ;; the if needed part is because nrepl will call this
+  ;; repl fn on each evaluation. Maybe we should find a better place
+  ;; to initialize flow-storm recordings
+  (storm-repl/init-flow-storm-if-needed)
+  
   (let [{:keys [init need-prompt prompt flush read eval print caught]
          :or {init        #()
               need-prompt (if (instance? LineNumberingPushbackReader *in*)
@@ -430,10 +437,11 @@ by default when a new command-line REPL is started."} repl-requires
           (try
             (let [read-eval *read-eval*
                   input (try
-                          (with-read-known (read request-prompt request-exit))
+                          (with-read-known (clojure.storm.Utils/tagStormCoord (read request-prompt request-exit)))
                           (catch LispReader$ReaderException e
                             (throw (ex-info nil {:clojure.error/phase :read-source} e))))]
-             (or (#{request-prompt request-exit} input)
+              (or (storm-repl/maybe-execute-storm-specials input)
+                  (#{request-prompt request-exit} input)
                  (let [value (binding [*read-eval* read-eval] (eval input))]
                    (set! *3 *2)
                    (set! *2 *1)
@@ -442,9 +450,10 @@ by default when a new command-line REPL is started."} repl-requires
                      (print value)
                      (catch Throwable e
                        (throw (ex-info nil {:clojure.error/phase :print-eval-result} e)))))))
-           (catch Throwable e
-             (caught e)
-             (set! *e e))))]
+            (catch Throwable e
+              (clojure.storm.Tracer/handleThreadException (Thread/currentThread) e)
+              (caught e)
+              (set! *e e))))]
     (with-bindings
      (binding [*repl* true]
        (try
@@ -521,7 +530,8 @@ by default when a new command-line REPL is started."} repl-requires
   present"
   [[_ & args] inits]
   (when-not (some #(= eval-opt (init-dispatch (first %))) inits)
-    (println "Clojure" (clojure-version)))
+    (println "ClojureStorm" (clojure-version))
+    (println "\nEvaluate the :help keyword for more info or :tut/basics for a beginners tour.\n"))
   (repl :init (fn []
                 (initialize args inits)
                 (apply require repl-requires)))
