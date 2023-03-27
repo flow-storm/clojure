@@ -5806,7 +5806,7 @@
 (declare gen-class)
 
 (defmacro with-loading-context [& body]
-  `((fn loading# [] 
+  `((fn loading# ^:clojure.storm/skip [] 
         (. clojure.lang.Var (pushThreadBindings {clojure.lang.Compiler/LOADER  
                                                  (.getClassLoader (.getClass ^Object loading#))}))
         (try
@@ -7116,7 +7116,15 @@ fails, attempts to require sym's namespace and retries."
   {:added "1.1"
    :static true}
   [f]
-  (let [f (binding-conveyor-fn f)
+  (let [f (binding-conveyor-fn
+           (fn [& args]
+             (try
+               (apply f args)
+               (catch Throwable t
+                 (clojure.storm.Tracer/handleThreadException
+                  (Thread/currentThread)
+                  t)
+                 (throw t)))))
         fut (.submit clojure.lang.Agent/soloExecutor ^Callable f)]
     (reify 
      clojure.lang.IDeref 
