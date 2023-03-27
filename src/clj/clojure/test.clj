@@ -633,7 +633,7 @@
   {:added "1.1"}
   [name & body]
   (when *load-tests*
-    `(def ~(vary-meta name assoc :test `(fn [] ~@body))
+    `(def ~(vary-meta name assoc :test `(fn ~name [] ~@body))
           (fn [] (test-var (var ~name))))))
 
 (defmacro deftest-
