@@ -59,6 +59,8 @@
       <arg value="clojure.core"/>
       <arg value="clojure.core.protocols"/>
       <arg value="clojure.core.server"/>
+      <arg value="clojure.storm.repl"/>
+      <arg value="clojure.storm.tutorials.basics"/>
       <arg value="clojure.main"/>
       <arg value="clojure.set"/>
       <arg value="clojure.edn"/>
