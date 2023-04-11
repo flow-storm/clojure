@@ -295,6 +295,10 @@ static public Object getCompilerOption(Keyword k){
 
     static Object elideMeta(Object m){
         Collection<Object> elides = (Collection<Object>) getCompilerOption(elideMetaKey);
+
+		// Always elide Storm coordinates meta
+		m = RT.dissoc(m, LispReader.COORD_KEY);
+		
         if(elides != null)
             {
             for(Object k : elides)
@@ -7321,7 +7325,31 @@ static String errorMsg(String source, int line, int column, String s){
 }
 
 public static Object eval(Object form) {
-	return eval(form, true);
+	try
+		{
+		return eval(form, true);
+		}
+	catch(Throwable ce)
+		{            
+		if (ce instanceof CompilerException)
+			{
+			Throwable cause = ce.getCause();
+			if(cause != null && (cause.getMessage().equals("Method code too large!")))
+				{
+				System.out.println("Method too large, re-evaluating without storm instrumentation.");                
+				Var.pushThreadBindings(RT.map(Emitter.INSTRUMENTATION_ENABLE, false));
+				Object result = eval(form, true);                
+				Var.popThreadBindings();
+				return result;
+				}
+			else
+				throw ce;
+			}
+		else
+			throw ce;
+        
+		}
+    
 }
 
 public static Object eval(Object form, boolean freshLoader) {
