@@ -1,19 +1,20 @@
 package clojure.storm;
 
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Collectors;
 
-import clojure.asm.Opcodes;
 import clojure.asm.Type;
 import clojure.asm.commons.GeneratorAdapter;
 import clojure.asm.commons.Method;
+import clojure.lang.AFn;
 import clojure.lang.Compiler;
 import clojure.lang.Compiler.BindingInit;
 import clojure.lang.Compiler.FnExpr;
 import clojure.lang.Compiler.FnMethod;
 import clojure.lang.Compiler.LocalBinding;
 import clojure.lang.Compiler.ObjExpr;
+import clojure.lang.IFn;
 import clojure.lang.IPersistentMap;
 import clojure.lang.IPersistentVector;
 import clojure.lang.Keyword;
@@ -21,6 +22,7 @@ import clojure.lang.Namespace;
 import clojure.lang.PersistentVector;
 import clojure.lang.RT;
 import clojure.lang.Symbol;
+import clojure.lang.Var;
 
 public class Emitter {
 
@@ -33,8 +35,8 @@ public class Emitter {
 	
 	static Keyword LINE_KEY = Keyword.intern(null, "line");
 	static Keyword NS_KEY = Keyword.intern(null, "ns");
-
-	private static boolean instrumentationEnable = false;
+    
+	public static Var INSTRUMENTATION_ENABLE = Var.create(false).setDynamic();
 
 	private static ArrayList<String> instrumentationSkipPrefixes = new ArrayList();
 	private static ArrayList<String> instrumentationOnlyPrefixes = new ArrayList();
@@ -42,7 +44,7 @@ public class Emitter {
 	static {	
 		String instrumentationEnableProp = System.getProperty("clojure.storm.instrumentEnable");
 		if(instrumentationEnableProp != null)
-			instrumentationEnable = Boolean.parseBoolean(instrumentationEnableProp);
+			setInstrumentationEnable(Boolean.parseBoolean(instrumentationEnableProp)); 
 									
         String skipPrefixesProp = System.getProperty("clojure.storm.instrumentSkipPrefixes"); 
 		if(skipPrefixesProp != null)
@@ -60,16 +62,25 @@ public class Emitter {
 				for(String p : prefixes)
 					addInstrumentationOnlyPrefix(Compiler.munge(p));
 					
-			}		
+			}
+		if(instrumentationOnlyPrefixes.size()>0 && instrumentationSkipPrefixes.size()>0)
+			{
+			System.out.println("Warning, instrumentOnlyPrefixes and instrumentSkipPrefixes are both set, only instrumentOnlyPrefixes will be taken into account.");
+			}
 		}
 	
-	public static void setInstrumentationEnable(boolean x) {
-		instrumentationEnable = x;
-		System.out.println("Storm instrumentation set to: " + instrumentationEnable);
+	public static void setInstrumentationEnable(Boolean x) {
+		IFn f = new AFn() {
+			public Object invoke(Object prev) {
+				return x;
+			}
+		};
+		INSTRUMENTATION_ENABLE.alterRoot(f ,null);        
+		System.out.println("Storm instrumentation set to: " + INSTRUMENTATION_ENABLE.deref());
 	}
 
-	public static boolean getInstrumentationEnable() {
-		return instrumentationEnable;
+	public static Boolean getInstrumentationEnable() {
+		return (Boolean) INSTRUMENTATION_ENABLE.deref();
 	}
 
 	public static ArrayList<String> getInstrumentationSkipPrefixes() {
@@ -98,29 +109,30 @@ public class Emitter {
 		instrumentationOnlyPrefixes.add(prefix);        
 	}
 	
-	public static boolean skipInstrumentation(String fqFnName) {
-		boolean skip = !instrumentationEnable;
+	public static boolean skipInstrumentation(String fqFnName) {        
 
+		boolean instrumentBecasueOfPrefixes = false;
 		if(instrumentationOnlyPrefixes.size() > 0)
 			{
-
-			boolean instrument = false;
+			// if any of the only is true, make instrumentBecasueOfPrefixes true
 			for (String prefix : instrumentationOnlyPrefixes)
 				{
-				instrument |= fqFnName.startsWith(prefix);
-				}
-			skip = !instrument;
+				instrumentBecasueOfPrefixes |= fqFnName.startsWith(prefix);
+				}            
 
-			} else {
-			
+			}
+		else
+			{
+			instrumentBecasueOfPrefixes = true;
+			// if any of the skip is true, make instrumentBecasueOfPrefixes false            
 			for (String prefix : instrumentationSkipPrefixes)
 				{
-				skip |= fqFnName.startsWith(prefix);
+				instrumentBecasueOfPrefixes &= !fqFnName.startsWith(prefix);
 				}
 			}
-		
-		return skip;		   
-		}
+		boolean skip = !getInstrumentationEnable() || !instrumentBecasueOfPrefixes;
+        return skip;
+	}
 	
 	private static void dupAndBox(GeneratorAdapter gen, Type t) {
 		if(t != null && (Type.LONG_TYPE.equals(t) || Type.DOUBLE_TYPE.equals(t))) {
