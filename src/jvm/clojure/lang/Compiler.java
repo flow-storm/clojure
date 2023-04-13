@@ -5497,6 +5497,7 @@ public static class FnMethod extends ObjMethod{
                             ,CLEAR_ROOT, pnode
                             ,CLEAR_SITES, PersistentHashMap.EMPTY
                             ,METHOD_RETURN_CONTEXT, RT.T
+							,FN_TRACE_SYM, null // don't let FN_TRACE_SYM flow more than one level
                         ));
 
 			method.prim = primInterface(parms);
