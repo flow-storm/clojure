@@ -41,6 +41,7 @@
   (println "  -Dclojure.storm.instrumentOnlyPrefixes  Ex: my-project-ns.,my-lib-ns.core")
   (println "  -Dflowstorm.fnExpressionsLimit          INTEGER (defaults to 10000)")
   (println "  -Dflowstorm.theme                       [dark|light|auto] (defaults to auto)")
+  (println "  -Dflowstorm.styles                      [STRING] Ex: /home/user/my-styles.css")
   (println))
 
 (defn- storm-rec-start []
