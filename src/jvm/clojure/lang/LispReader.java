@@ -881,7 +881,10 @@ public static class FnReader extends AFn{
 		try
 			{
 			Var.pushThreadBindings(
-					RT.map(ARG_ENV, PersistentTreeMap.EMPTY));
+				RT.map(ARG_ENV, PersistentTreeMap.EMPTY,
+					// #(...) gets read as (fn [...] (...)) so we want to fix it
+					// by adding 2 to the coord to move it right
+					COORD, RT.conj((IPersistentVector)COORD.deref(), 2)));
 			unread(r, '(');
 			Object form = read(r, true, null, true, opts, ensurePending(pendingForms));
 
