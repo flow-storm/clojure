@@ -2837,13 +2837,9 @@ public static class IfExpr implements Expr, MaybePrimitiveExpr{
 		if(emitUnboxed)
 			((MaybePrimitiveExpr)thenExpr).emitUnboxed(context, objx, gen);
 		else {
-				thenExpr.emit(context, objx, gen);
-				// This causes a :
-			    // Syntax error (ArrayIndexOutOfBoundsException) compiling fn* at (REPL:1:1).
-			    // Index -1 out of bounds for length 0
-			    // with : (if (< 2 3) (do (if (< 7 8) 42) 43))
-
-				// Emitter.emitExprTrace(gen, objx, coord, OBJECT_TYPE);
+				thenExpr.emit(context, objx, gen);				
+				if(context != C.STATEMENT)
+					Emitter.emitExprTrace(gen, objx, coord, OBJECT_TYPE);
 		}
 		
 		gen.goTo(endLabel);
@@ -2855,7 +2851,8 @@ public static class IfExpr implements Expr, MaybePrimitiveExpr{
 			((MaybePrimitiveExpr)elseExpr).emitUnboxed(context, objx, gen);
 		else {
 			elseExpr.emit(context, objx, gen);
-			//Emitter.emitExprTrace(gen, objx, coord, OBJECT_TYPE);
+			if(context != C.STATEMENT)
+				Emitter.emitExprTrace(gen, objx, coord, OBJECT_TYPE);
 		}
             
 		gen.mark(endLabel);        		
