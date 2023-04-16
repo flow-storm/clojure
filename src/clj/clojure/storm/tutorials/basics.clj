@@ -131,9 +131,9 @@ There are 3 ways of moving around time from this screen.
 
 The first one is by clicking the controls (check out the tool tips to know how they move).
 
-The second one is by clicking on the highlights of the form. This are what FlowStorm captured as interesting
+The second one is by clicking on the highlights of the form. These are what FlowStorm captured as interesting
 debugging points for this frame. You can click on them (symbols and expressions). It will get highlighted in green and the
-debugger will move to that point in time. Sometimes is more practical to just click on the value you want to see
+debugger will move to that point in time. Sometimes it is more practical to just click on the value you want to see
 instead of clicking the next button many times.
 
 The third one is by just typing a number on the current step input and then hitting enter.
@@ -299,7 +299,7 @@ recordings to consume your heap space, you can enable/disable it with :rec and :
 - :inst and :noinst
 
 You can also enable/disable compiler instrumentation. Important: when you disable it, it will
-not remove instrumentation from already loaded functions, you will have to re evaluate them.
+not remove instrumentation from already loaded functions, you will have to re-evaluate them.
 
 Disabling instrumentation is useful when you want to measure performance or in any other situation
 where you don't want instrumentation.
