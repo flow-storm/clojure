@@ -5,11 +5,14 @@
 (def ^:private storm-initialized? (atom false))
 
 (defn- call-flow-storm [fn-symb & args]
-  (let [fqsym (symbol "flow-storm.storm-api" (name fn-symb))
-        f (requiring-resolve fqsym)]
-    (if f
-      (apply f args)
-      (println "Storm error, couldn't find function" fqsym))))
+  (try
+    (let [fqsym (symbol "flow-storm.storm-api" (name fn-symb))
+          f (requiring-resolve fqsym)]
+      (if f
+        (apply f args)
+        (println "Storm error, couldn't find function" fn-symb "skipping...")))
+    (catch Throwable _
+      (println "Storm error, couldn't find function" fn-symb "skipping..."))))
 
 (defn- print-storm-help []
   (println "Clojure Storm Help\n")
