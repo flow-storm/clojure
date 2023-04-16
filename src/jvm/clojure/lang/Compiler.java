@@ -7111,7 +7111,7 @@ public static Object preserveTagAndCoord(ISeq src, Object dst) {
 		meta = (IPersistentMap) RT.assoc(meta, RT.TAG_KEY, tag);
 		dst = ((IObj) dst).withMeta((IPersistentMap) meta);
 	}
-	if (coord != null) {
+	if (coord != null && dst != null) {
 		IPersistentMap meta = RT.meta(dst);
 		meta = (IPersistentMap) RT.assoc(meta, LispReader.COORD_KEY, coord);
 		dst = ((IObj) dst).withMeta((IPersistentMap) meta);
