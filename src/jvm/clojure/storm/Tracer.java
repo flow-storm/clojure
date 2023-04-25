@@ -23,15 +23,10 @@ public class Tracer {
 	private static Keyword TRACE_BIND_FN_KEY = Keyword.intern(null, "trace-bind-fn-key");
 	private static Keyword HANDLE_EXCEPTION_FN_KEY = Keyword.intern(null, "handle-exception-fn-key");
 		
-	private static AtomicBoolean traceEnable = new AtomicBoolean(false);
 	private static ConcurrentHashMap<IPersistentVector,IPersistentVector> coordCache = new ConcurrentHashMap();
 
 	static
-		{
-		String traceEnableProp = System.getProperty("clojure.storm.traceEnable"); 
-		if(traceEnableProp != null && traceEnableProp.equals("true"))
-			enableThreadsTracing();
-		
+		{				
 		// For all new threads created 
 		Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
 				handleThreadException(t, e);
@@ -45,12 +40,12 @@ public class Tracer {
 	}
 	
     static public void traceFnCall(IPersistentVector fnArgs, String fnNs, String fnName, int formId) {
-		if (traceFnCallFn != null && traceEnable.get())
+		if (traceFnCallFn != null)
 			traceFnCallFn.invoke(null, fnNs, fnName, fnArgs, formId);
 	}
 
 	static public void traceExpr(Object val, Integer[] coord, int formId) {        
-        if (traceExprFn != null && traceEnable.get())
+        if (traceExprFn != null)
 			{
 			IPersistentVector c = internCoord(coord);
 			traceExprFn.invoke(null, val, c, formId);
@@ -58,7 +53,7 @@ public class Tracer {
     }
 
     static public void traceFnReturn(Object retVal, Integer[] coord, int formId) {        
-        if (traceFnReturnFn != null && traceEnable.get())
+        if (traceFnReturnFn != null)
 			{
 			IPersistentVector c = internCoord(coord);
 			traceFnReturnFn.invoke(null, retVal, c, formId);
@@ -66,7 +61,7 @@ public class Tracer {
     }
 
 	public static void traceBind(Object val, Integer[] coord, String symName) {
-		if (traceBindFn != null && traceEnable.get())
+		if (traceBindFn != null)
 			{
 			IPersistentVector c = internCoord(coord);
 			traceBindFn.invoke(null, c, symName, val);
@@ -98,25 +93,5 @@ public class Tracer {
 			return k;
 			}	
 	}
-
-	public static boolean getTraceEnable() {
-		return traceEnable.get();
-	}
-	
-	public static void disableThreadsTracing() {
-		traceEnable.set(false);
-		System.out.println("Storm tracing disable.");
-	}
-
-	public static void enableThreadsTracing() {
-		if(traceEnable.get())
-			{
-			System.out.println("Storm tracing is already enable.");
-			} else {                                
-			traceEnable.set(true);
-			System.out.println("Storm tracing enable.");
-			}		
-	}
-	
 
 }
