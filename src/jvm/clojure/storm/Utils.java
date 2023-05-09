@@ -17,27 +17,27 @@ public class Utils {
 		if (x instanceof clojure.lang.IObj) {
 			IObj o = (IObj) x;
 			if (m != null || RT.meta(o) != null)
-				{
+				{ // if there is meta in any of the args
 				IPersistentMap retMeta = PersistentHashMap.EMPTY;
 				IPersistentMap oMeta = RT.meta(o);
 
-				if (m != null)
-					{
-					for (Object meo : m)
-						{
-						MapEntry me = (MapEntry) meo;
-						retMeta = retMeta.assoc(me.getKey(), me.getValue());
-						}
-					}
 				if (oMeta != null)
 					{
 					for (Object meo : oMeta)
-	{
+					{
 						MapEntry me = (MapEntry) meo;
 						retMeta = retMeta.assoc(me.getKey(), me.getValue());
 						}
 					}
-
+					// m meta overrides the input Object meta when both have
+					if (m != null)
+					{
+						for (Object meo : m)
+						{
+							MapEntry me = (MapEntry) meo;
+							retMeta = retMeta.assoc(me.getKey(), me.getValue());
+						}
+					}
 				return o.withMeta(retMeta);
 				} else {
 				return x;
