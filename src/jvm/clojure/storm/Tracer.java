@@ -23,8 +23,6 @@ public class Tracer {
 	private static Keyword TRACE_BIND_FN_KEY = Keyword.intern(null, "trace-bind-fn-key");
 	private static Keyword HANDLE_EXCEPTION_FN_KEY = Keyword.intern(null, "handle-exception-fn-key");
 		
-	private static ConcurrentHashMap<IPersistentVector,IPersistentVector> coordCache = new ConcurrentHashMap();
-
 	static
 		{				
 		// For all new threads created 
@@ -44,27 +42,24 @@ public class Tracer {
 			traceFnCallFn.invoke(null, fnNs, fnName, fnArgs, formId);
 	}
 
-	static public void traceExpr(Object val, Integer[] coord, int formId) {        
+	static public void traceExpr(Object val, String coord, int formId) {        
         if (traceExprFn != null)
 			{
-			IPersistentVector c = internCoord(coord);
-			traceExprFn.invoke(null, val, c, formId);
+			traceExprFn.invoke(null, val, coord, formId);
 			}        
     }
 
-    static public void traceFnReturn(Object retVal, Integer[] coord, int formId) {        
+    static public void traceFnReturn(Object retVal, String coord, int formId) {        
         if (traceFnReturnFn != null)
-			{
-			IPersistentVector c = internCoord(coord);
-			traceFnReturnFn.invoke(null, retVal, c, formId);
+			{            
+			traceFnReturnFn.invoke(null, retVal, coord, formId);
 			}        
     }
 
-	public static void traceBind(Object val, Integer[] coord, String symName) {
+	public static void traceBind(Object val, String coord, String symName) {
 		if (traceBindFn != null)
-			{
-			IPersistentVector c = internCoord(coord);
-			traceBindFn.invoke(null, c, symName, val);
+			{            
+			traceBindFn.invoke(null, coord, symName, val);
 			}        
 	}
 	
@@ -82,16 +77,6 @@ public class Tracer {
 		traceExprFn = (IFn) callbacks.valAt(TRACE_EXPR_FN_KEY);
 		traceBindFn = (IFn) callbacks.valAt(TRACE_BIND_FN_KEY); 
 		handleExceptionFn = (IFn) callbacks.valAt(HANDLE_EXCEPTION_FN_KEY);
-	}
-		
-	private static IPersistentVector internCoord(Integer... coord) {
-		IPersistentVector k = PersistentVector.adopt(coord);
-		if(coordCache.containsKey(k)) {
-			return coordCache.get(k);
-			} else {            
-			coordCache.put(k, k);
-			return k;
-			}	
 	}
 
 }

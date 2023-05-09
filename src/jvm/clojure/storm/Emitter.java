@@ -188,7 +188,7 @@ public class Emitter {
 			emitCoord(gen, fn.getCoord());
 				
 			gen.push(formId);
-			gen.invokeStatic(TRACER_CLASS_TYPE, Method.getMethod("void traceFnReturn(Object, Integer[], int)"));
+			gen.invokeStatic(TRACER_CLASS_TYPE, Method.getMethod("void traceFnReturn(Object, String, int)"));
 		}
 	}
 
@@ -198,20 +198,14 @@ public class Emitter {
 			coord =  PersistentVector.EMPTY;
 		}
 
-		gen.push(coord.count());
-		gen.newArray(INTEGER_CLASS_TYPE);
+		StringBuilder strCoordBuilder = new StringBuilder();
 		for (int i = 0; i < coord.count(); i++) {
-			gen.dup();
-			Object cio = coord.nth(i);
-			Integer ci = null;
-			if      (cio instanceof Integer) ci = (Integer) cio;
-			else if (cio instanceof Long)    ci = ((Long) cio).intValue();
-
-			gen.push(i);
-			gen.push(ci);            
-			gen.box(INT_TYPE);
-			gen.arrayStore(INTEGER_CLASS_TYPE);
-		}        
+			strCoordBuilder.append((int)coord.nth(i));
+			if(i < (coord.count()-1))
+				strCoordBuilder.append(",");
+		}
+		String strCoord = strCoordBuilder.toString();
+		gen.push(strCoord);
 	}	
 
 	public static void emitExprTrace(GeneratorAdapter gen, ObjExpr objx, IPersistentVector coord, Type retType) {
@@ -230,7 +224,7 @@ public class Emitter {
 				gen.push(formId);
 		
 				// trace
-				gen.invokeStatic(TRACER_CLASS_TYPE,Method.getMethod("void traceExpr(Object, Integer[], int)"));
+				gen.invokeStatic(TRACER_CLASS_TYPE,Method.getMethod("void traceExpr(Object, String, int)"));
 			}		
 		}
 		
@@ -255,7 +249,7 @@ public class Emitter {
 			gen.push(symName);
 
 			gen.invokeStatic(TRACER_CLASS_TYPE,
-				Method.getMethod("void traceBind(Object, Integer[], String)"));
+				Method.getMethod("void traceBind(Object, String, String)"));
 
 		}
 	}
@@ -281,7 +275,7 @@ public class Emitter {
 					gen.push(symName);
 
 					gen.invokeStatic(TRACER_CLASS_TYPE,
-						Method.getMethod("void traceBind(Object, Integer[], String)"));
+						Method.getMethod("void traceBind(Object, String, String)"));
 				}
 			}
 		}
