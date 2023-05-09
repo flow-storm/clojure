@@ -61,8 +61,20 @@ public class Utils {
 			}
 	}
 
-	public static IPersistentVector coordOf(Object o) {
-		return (IPersistentVector) RT.get(RT.meta(o), LispReader.COORD_KEY);
+	public static IPersistentVector coordOf(Object form) {
+		IPersistentVector coord = (IPersistentVector) RT.get(RT.meta(form), LispReader.COORD_KEY);
+				
+		if(coord == null &&
+			form != null &&
+			form instanceof ISeq &&
+			((ISeq)form).count() > 0)
+			{
+			// If the form is a list and has no coord, maybe it was
+			// destroyed by a macro. Try guessing the coord by looking at
+			// the first element. This fixes `->`, for instance.
+			coord = (IPersistentVector) RT.get(RT.meta(((ISeq)form).first()), LispReader.COORD_KEY);
+			}
+		return coord;
 	}
 
 	public static IObj addCoordMeta(IObj o) {
