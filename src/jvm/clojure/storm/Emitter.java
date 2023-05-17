@@ -237,7 +237,7 @@ public class Emitter {
 		if (objx instanceof FnExpr &&
 			!skipInstrumentation(((FnExpr)objx).name()) &&
 			coord != null &&
-			!symName.equals("_")) {					
+			!symName.equals("-")) {					
 
 			Type valType = null;
 			Class primc = Compiler.maybePrimitiveType(bi.init());
@@ -267,7 +267,7 @@ public class Emitter {
 
 				String symName = Compiler.demunge(lb.name);
 
-				if (coord != null && !symName.equals("_") && lb.used) {
+				if (coord != null && !symName.equals("-") && lb.used) {
 					
 					objx.emitLocal(gen, lb, false, null);
 					
