@@ -64,11 +64,11 @@ public class Tracer {
 	}
 	
     static public void registerFormLocation(int formId, int line, String ns, String sourceFile) {
-		FormRegistry.registerForm(formId, new FormLocation(formId,sourceFile, ns, line));  
+		FormRegistry.registerForm(formId, new FormLocation(formId, sourceFile, ns, line));
 	}
 
-    static public void registerFormObject(int formId, String nsName, Object form) {
-		FormRegistry.registerForm(formId, new FormObject(formId, nsName, form));
+    static public void registerFormObject(int formId, String nsName, String sourceFile, int line, Object form) {
+		FormRegistry.registerForm(formId, new FormObject(formId, nsName, sourceFile, line, form));
     }
 
 	public static void setTraceFnsCallbacks(IPersistentMap callbacks) {
