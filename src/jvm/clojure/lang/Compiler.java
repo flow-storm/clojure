@@ -7352,12 +7352,7 @@ public static Object eval(Object form) {
 
 public static Object eval(Object form, boolean freshLoader) {
 	boolean createdLoader = false;
-
-	int formId = 0;
-	if (form != null)
-		formId = form.hashCode();
-	Tracer.registerFormObject(formId, currentNS().toString(), form);
-
+	
 	if(true)//!LOADER.isBound())
 		{
 		Var.pushThreadBindings(RT.map(LOADER, RT.makeClassLoader()));
@@ -7365,10 +7360,18 @@ public static Object eval(Object form, boolean freshLoader) {
 		}
 	try
 		{
+		int formId = 0;
+		if (form != null)
+			formId = form.hashCode();
+		
 		IPersistentMap meta = RT.meta(form);
+		Object file = (meta != null ? meta.valAt(RT.FILE_KEY, SOURCE_PATH.deref()) : SOURCE_PATH.deref());
 		Object line = (meta != null ? meta.valAt(RT.LINE_KEY, LINE.deref()) : LINE.deref());
 		Object column = (meta != null ? meta.valAt(RT.COLUMN_KEY, COLUMN.deref()) : COLUMN.deref());
 		IPersistentMap bindings = RT.mapUniqueKeys(LINE, line, COLUMN, column, FORM_ID, formId);
+		
+		Tracer.registerFormObject(formId, currentNS().toString(), (String)file, (int) line, form);
+	
 		if(meta != null) {
 			Object eval_file = meta.valAt(RT.EVAL_FILE_KEY);
 			if(eval_file != null) {

@@ -8,6 +8,8 @@ public class FormObject implements IForm {
 	private int formId;
 	private Object form;
 	private String nsName;
+	private String sourceFile;
+	private int line;
 	
 	public final static Keyword EXTEND_PROTOCOL_KEY = Keyword.intern(null, "extend-protocol");
 	public final static Keyword EXTEND_TYPE_KEY = Keyword.intern(null, "extend-type");
@@ -17,10 +19,12 @@ public class FormObject implements IForm {
 	public final static Keyword DEFN_KEY = Keyword.intern(null, "defn");
 	public final static Keyword UNKNOWN_KEY = Keyword.intern(null, "unknown");
 	
-	public FormObject(int formId, String nsName, Object form) {
+	public FormObject(int formId, String nsName, String sourceFile, int line, Object form) {
 		this.formId = formId; 
 		this.form = form;
 		this.nsName = nsName;
+		this.sourceFile = sourceFile;
+		this.line = line;
 	}
 	
 	public Object getForm() {
@@ -33,6 +37,14 @@ public class FormObject implements IForm {
 	
 	public String getNs() {
 		return nsName;
+	}
+
+	public String getSourceFile() {		
+		return sourceFile;
+	}
+
+	public int getLine() {
+		return line;
 	}
 
 	public static String multiMethodDispatchVal(ISeq form) {

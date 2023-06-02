@@ -17,6 +17,8 @@ public class FormRegistry {
 	final static Keyword FORM_NS_KEY = Keyword.intern("form", "ns");
 	final static Keyword FORM_FORM_KEY = Keyword.intern("form", "form");
 	final static Keyword FORM_DEF_KIND_KEY = Keyword.intern("form", "def-kind");
+	final static Keyword FORM_FILE_KEY = Keyword.intern("form", "file");
+	final static Keyword FORM_LINE_KEY = Keyword.intern("form", "line");
 	final static Keyword MULTIMETHOD_DISPATCH_VAL_KEY = Keyword.intern("multimethod", "dispatch-val");
 
 	private static ConcurrentHashMap<Integer, IForm> formsTable = new ConcurrentHashMap();
@@ -24,11 +26,14 @@ public class FormRegistry {
 	private static IPersistentMap makeFormMap(IForm form) {
 		Object frmO = form.getForm();
 		Keyword frmKind = FormObject.formKind(frmO);
-
+        
 		IPersistentMap ret = RT.map(FORM_ID_KEY, form.getId(),
 			FORM_NS_KEY, form.getNs(),
 			FORM_FORM_KEY, frmO,
-			FORM_DEF_KIND_KEY, frmKind);
+			FORM_DEF_KIND_KEY, frmKind,
+			FORM_FILE_KEY, form.getSourceFile(),
+			FORM_LINE_KEY, form.getLine()
+			);
 
 		if (frmKind==FormObject.DEFMETHOD_KEY) 
 			ret=ret.assoc(MULTIMETHOD_DISPATCH_VAL_KEY, FormObject.multiMethodDispatchVal((ISeq)frmO));

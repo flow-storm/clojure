@@ -30,6 +30,14 @@ public class FormLocation implements IForm {
 		this.formNamespace = ns;
 	}	
 
+	public int getLine() {
+		return line;		
+	}
+
+	public String getSourceFile() {
+		return sourceFile;
+	}
+	
 	public Object getForm() {
 		try {
 			Namespace ns = Namespace.find(Symbol.intern(formNamespace));
