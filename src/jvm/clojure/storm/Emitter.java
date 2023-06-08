@@ -82,11 +82,7 @@ public class Emitter {
 	public static Boolean getInstrumentationEnable() {
 		return (Boolean) INSTRUMENTATION_ENABLE.deref();
 	}
-
-	public static ArrayList<String> getInstrumentationSkipPrefixes() {
-		return instrumentationSkipPrefixes;
-	}
-
+	
 	public static String makePrefixesString(ArrayList<String> prefixes) {
 		if(prefixes.size()>0)
 			{
@@ -97,16 +93,30 @@ public class Emitter {
 			}        
 	}
 
-	public static ArrayList<String> getInstrumentationOnlyPrefixes() {
-		return instrumentationOnlyPrefixes;
+	public static ArrayList<String> getInstrumentationSkipPrefixes() {
+		return instrumentationSkipPrefixes;
 	}
-	
+
 	public static void addInstrumentationSkipPrefix(String prefix) {
 		instrumentationSkipPrefixes.add(prefix);
 	}
 
+	public static void removeInstrumentationSkipPrefix(String prefix) {
+		instrumentationSkipPrefixes.remove(prefix);        
+	}
+
+	
+	
+	public static ArrayList<String> getInstrumentationOnlyPrefixes() {
+		return instrumentationOnlyPrefixes;
+	}
+		
 	public static void addInstrumentationOnlyPrefix(String prefix) {
 		instrumentationOnlyPrefixes.add(prefix);        
+	}
+
+	public static void removeInstrumentationOnlyPrefix(String prefix) {
+		instrumentationOnlyPrefixes.remove(prefix);        
 	}
 	
 	public static boolean skipInstrumentation(String fqFnName) {        
