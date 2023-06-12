@@ -11,6 +11,7 @@ import clojure.lang.AFn;
 import clojure.lang.Compiler;
 import clojure.lang.Compiler.BindingInit;
 import clojure.lang.Compiler.FnExpr;
+import clojure.lang.Compiler.NewInstanceExpr;
 import clojure.lang.Compiler.FnMethod;
 import clojure.lang.Compiler.LocalBinding;
 import clojure.lang.Compiler.ObjExpr;
@@ -51,7 +52,7 @@ public class Emitter {
 			{
 				String[] prefixes = skipPrefixesProp.split(",");
 				for(String p : prefixes)
-					addInstrumentationSkipPrefix(Compiler.munge(p));
+					addInstrumentationSkipPrefix(p);
 					
 			}
 
@@ -60,7 +61,7 @@ public class Emitter {
 			{
 				String[] prefixes = onlyPrefixesProp.split(",");
 				for(String p : prefixes)
-					addInstrumentationOnlyPrefix(Compiler.munge(p));
+					addInstrumentationOnlyPrefix(p);
 					
 			}
 		if(instrumentationOnlyPrefixes.size()>0 && instrumentationSkipPrefixes.size()>0)
@@ -85,9 +86,8 @@ public class Emitter {
 	
 	public static String makePrefixesString(ArrayList<String> prefixes) {
 		if(prefixes.size()>0)
-			{
-			List prefs = prefixes.stream().map(p -> Compiler.demunge(p)).collect(Collectors.toList());
-            return String.join(",", prefs);
+			{            
+            return String.join(",", prefixes);
 			} else {
 			return null;
 			}        
@@ -161,41 +161,43 @@ public class Emitter {
 			gen.dup();
 		}	
 	}
+
+	public static Symbol calculateFnName(FnMethod method) {
+		ObjExpr fn = method.objx();
+		Symbol name = method.methodTraceSymbol == null ? Symbol.create(Compiler.demunge(fn.name())) : method.methodTraceSymbol;
+		return name;
+	}
 	
-	public static void emitFnCallTrace(GeneratorAdapter gen, ObjExpr fn, FnMethod method, Type[] argtypes, IPersistentVector arglocals) {
-
-		boolean skipFn = skipInstrumentation(fn.name()) || method.skipFnCallTrace;
+	public static void emitFnCallTrace(GeneratorAdapter gen, ObjExpr objx, Symbol fnName, Type[] argtypes, IPersistentVector arglocals) {        
+		boolean skipFn = skipInstrumentation(fnName.toString());
 		if (!skipFn) {
-			int formId = (Integer) Compiler.FORM_ID.deref();            
-			Symbol name = (method.methodTraceSymbol == null) ? Symbol.create(Compiler.demunge(fn.name())) : method.methodTraceSymbol;
-			String fnName = name.getName();
-			String fnNs = name.getNamespace();
+			System.out.println("@@@@ emitFnCallTrace" + fnName);
 
+			int formId = (Integer) Compiler.FORM_ID.deref();                        
+			String name = fnName.getName();
+			String ns = fnName.getNamespace();
+            
 			gen.loadArgArray();
 			gen.invokeStatic(Type.getType(clojure.lang.PersistentVector.class), Method.getMethod("clojure.lang.PersistentVector create(Object[])"));
             
-			gen.push(fnNs);
-			gen.push(fnName);
+			gen.push(name);
+			gen.push(ns);
 			gen.push(formId);
 			gen.invokeStatic(TRACER_CLASS_TYPE, Method.getMethod("void traceFnCall(clojure.lang.IPersistentVector, String, String, int)"));
 
-			emitBindTraces(gen, fn, arglocals, PersistentVector.EMPTY);                                       
+			emitBindTraces(gen, objx, arglocals, PersistentVector.EMPTY);                                       
 		}            
 	}    
  
-	public static void emitFnReturnTrace(GeneratorAdapter gen, ObjExpr fn, FnMethod method, Type retType) {
-		
-		boolean skipFn = skipInstrumentation(fn.name()) || method.skipFnCallTrace;
-		if (!skipFn) {
-			int formId = (Integer) Compiler.FORM_ID.deref();
-			if(Type.LONG_TYPE.equals(retType) || Type.DOUBLE_TYPE.equals(retType)) {
-				gen.dup2();
-				gen.valueOf(retType);		
-			}  else {
-				gen.dup();			
-			}
+	public static void emitFnReturnTrace(GeneratorAdapter gen, Symbol fnName, IPersistentVector coord, Type retType) {
 
-			emitCoord(gen, fn.getCoord());
+		boolean skipFn = skipInstrumentation(fnName.toString());
+		if (!skipFn) {
+            System.out.println("@@@@ emitFnReturnTrace" + fnName);
+			int formId = (Integer) Compiler.FORM_ID.deref();
+			dupAndBox(gen,retType);
+
+			emitCoord(gen, coord);
 				
 			gen.push(formId);
 			gen.invokeStatic(TRACER_CLASS_TYPE, Method.getMethod("void traceFnReturn(Object, String, int)"));
@@ -219,22 +221,29 @@ public class Emitter {
 	}	
 
 	public static void emitExprTrace(GeneratorAdapter gen, ObjExpr objx, IPersistentVector coord, Type retType) {
+
 		if (coord != null) {
 			
 			int formId = (Integer)Compiler.FORM_ID.deref();
-                
-			if (objx instanceof FnExpr && !skipInstrumentation(((FnExpr)objx).name())) {
-				//System.out.println("@@@@ doing it for " + ((FnExpr) objx).name() + coord);
-				// assumes the stack contains the value to be traced
-				// duplicate the value for tracing, so we don't consume it
-				dupAndBox(gen, retType);
-								
-				emitCoord(gen, coord);
 
-				gen.push(formId);
-		
-				// trace
-				gen.invokeStatic(TRACER_CLASS_TYPE,Method.getMethod("void traceExpr(Object, String, int)"));
+			if (objx instanceof FnExpr || objx instanceof NewInstanceExpr) {
+				String objxName = null;
+				if (objx instanceof FnExpr)               objxName = ((FnExpr)objx).name();
+				else if (objx instanceof NewInstanceExpr) objxName = ((NewInstanceExpr)objx).name();
+
+				if(!skipInstrumentation(objxName)) {
+                    
+					// assumes the stack contains the value to be traced
+					// duplicate the value for tracing, so we don't consume it
+					dupAndBox(gen, retType);
+
+					emitCoord(gen, coord);
+
+					gen.push(formId);
+
+					// trace
+					gen.invokeStatic(TRACER_CLASS_TYPE, Method.getMethod("void traceExpr(Object, String, int)"));
+				}
 			}		
 		}
 		

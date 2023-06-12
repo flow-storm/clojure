@@ -5629,8 +5629,11 @@ public static class FnMethod extends ObjMethod{
 		                                            EXCEPTION_TYPES,
 		                                            cv);
 
-		Emitter.emitFnCallTrace(gen, fn, this, argtypes, argLocals);
-		
+		Symbol fnCallName = Emitter.calculateFnName(this);
+
+		if(!this.skipFnCallTrace)
+			Emitter.emitFnCallTrace(gen, fn, fnCallName, argtypes, argLocals);
+
 		gen.visitCode();
 		Label loopLabel = gen.mark();
 		gen.visitLineNumber(line, loopLabel);
@@ -5651,8 +5654,8 @@ public static class FnMethod extends ObjMethod{
 			Var.popThreadBindings();
 			}
 
-		
-		Emitter.emitFnReturnTrace(gen, fn, this, returnType);
+		if(!this.skipFnCallTrace)
+			Emitter.emitFnReturnTrace(gen, fnCallName,fn.getCoord(), returnType);
 		
 		gen.returnValue();
 		//gen.visitMaxs(1, 1);
@@ -5739,7 +5742,10 @@ public static class FnMethod extends ObjMethod{
 		                                            //todo don't hardwire this
 		                                            EXCEPTION_TYPES,
 		                                            cv);
-		Emitter.emitFnCallTrace(gen, fn, this, argtypes, argLocals);
+		Symbol fnCallName = Emitter.calculateFnName(this);
+
+		if(!this.skipFnCallTrace)
+			Emitter.emitFnCallTrace(gen, fn, fnCallName, argtypes, argLocals);
 		
 		gen.visitCode();
 
@@ -5762,9 +5768,9 @@ public static class FnMethod extends ObjMethod{
 			{
 			Var.popThreadBindings();
 			}
-
-		
-		Emitter.emitFnReturnTrace(gen, fn, this , returnType);
+        
+		if(!this.skipFnCallTrace)
+			Emitter.emitFnReturnTrace(gen, fnCallName, fn.getCoord() , returnType);
 
 		gen.returnValue();
 		//gen.visitMaxs(1, 1);
@@ -5810,7 +5816,10 @@ public static class FnMethod extends ObjMethod{
 		                                            EXCEPTION_TYPES,
 		                                            cv);
 
-		Emitter.emitFnCallTrace(gen, fn, this, argtypes, argLocals);
+		Symbol fnCallName = Emitter.calculateFnName(this);
+
+		if(!this.skipFnCallTrace)
+			Emitter.emitFnCallTrace(gen, fn, fnCallName, argtypes, argLocals);
 				
 		gen.visitCode();
 
@@ -5834,8 +5843,9 @@ public static class FnMethod extends ObjMethod{
 			{
 			Var.popThreadBindings();
 			}
-
-		Emitter.emitFnReturnTrace(gen, fn, this, Type.getType(Object.class));
+       
+		if(!this.skipFnCallTrace)
+			Emitter.emitFnReturnTrace(gen, fnCallName, fn.getCoord(), Type.getType(Object.class));
 			
 		gen.returnValue();
 		//gen.visitMaxs(1, 1);
@@ -8631,7 +8641,8 @@ public static class NewInstanceMethod extends ObjMethod{
 	Type retType;
 	Class retClass;
 	Class[] exclasses;
-
+	IPersistentVector coord;
+	
 	static Symbol dummyThis = Symbol.intern(null,"dummy_this_dlskjsdfower");
 	private IPersistentVector parms;
 
@@ -8655,7 +8666,13 @@ public static class NewInstanceMethod extends ObjMethod{
 		return argTypes;
 	}
 
+	void setCoord(IPersistentVector coord) {
+		this.coord = coord;
+	}
 
+	IPersistentVector getCoord() {
+		return this.coord;
+	}
 
 	static public IPersistentVector msig(String name,Class[] paramTypes){
 		return RT.vector(name,RT.seq(paramTypes));
@@ -8666,6 +8683,7 @@ public static class NewInstanceMethod extends ObjMethod{
 		//(methodname [this-name args*] body...)
 		//this-name might be nil
 		NewInstanceMethod method = new NewInstanceMethod(objx, (ObjMethod) METHOD.deref());
+		method.setCoord(Utils.coordOf(form));
 		Symbol dotname = (Symbol)RT.first(form);
 		Symbol name = (Symbol) Symbol.intern(null,munge(dotname.name)).withMeta(RT.meta(dotname));
 		IPersistentVector parms = (IPersistentVector) RT.second(form);
@@ -8843,6 +8861,9 @@ public static class NewInstanceMethod extends ObjMethod{
 			}
 		gen.visitCode();
 
+		Symbol fqMethodName = Symbol.create(Compiler.currentNS().name.name, getMethodName());
+		//Emitter.emitFnCallTrace(gen, obj, fqMethodName, extypes, argLocals);
+		
 		Label loopLabel = gen.mark();
 
 		gen.visitLineNumber(line, loopLabel);
@@ -8863,7 +8884,8 @@ public static class NewInstanceMethod extends ObjMethod{
 			{
 			Var.popThreadBindings();
 			}
-
+                
+		// Emitter.emitFnReturnTrace(gen, fqMethodName, getCoord(), retType);
 		gen.returnValue();
 		//gen.visitMaxs(1, 1);
 		gen.endMethod();
