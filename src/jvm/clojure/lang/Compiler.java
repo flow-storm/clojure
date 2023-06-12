@@ -5408,7 +5408,7 @@ public static class FnMethod extends ObjMethod{
 	Class retClass;
 	String prim ;
 	public boolean skipFnCallTrace = false;
-	public Symbol methodTraceSymbol = null;
+	public String mungedMethodTraceName = null;
 
 	public FnMethod(ObjExpr objx, ObjMethod parent){
 		super(objx, parent);
@@ -5452,12 +5452,15 @@ public static class FnMethod extends ObjMethod{
 			FnMethod method = new FnMethod(objx, (ObjMethod) METHOD.deref());
 			method.skipFnCallTrace = RT.meta(parms) !=null && RT.meta(parms).containsKey(SKIP_TRACE_KEY);
 			if(FN_TRACE_SYM.deref() != null)
-				method.methodTraceSymbol = (Symbol) FN_TRACE_SYM.deref();
+				{
+				Symbol sym = (Symbol) FN_TRACE_SYM.deref();
+				method.mungedMethodTraceName = sym.getNamespace() + "$" + sym.getName();
+				}				
 			else if (RT.meta(parms) !=null && RT.meta(parms).containsKey(FN_TRACE_SYM_KEY))
 				{
 				String currentNsName = ((Namespace)RT.CURRENT_NS.deref()).getName().name;
 				String symName = ((Symbol) RT.meta(parms).valAt(FN_TRACE_SYM_KEY)).getName();
-				method.methodTraceSymbol = Symbol.create(currentNsName, symName);
+				method.mungedMethodTraceName = Compiler.munge(currentNsName) + "$" + symName;
 				}
                 
 					
@@ -5629,7 +5632,13 @@ public static class FnMethod extends ObjMethod{
 		                                            EXCEPTION_TYPES,
 		                                            cv);
 
-		Emitter.emitFnCallTrace(gen, fn, this, argtypes, argLocals);
+		if(!this.skipFnCallTrace)
+			{
+			String fnName = fn.name();
+			if(mungedMethodTraceName != null) fnName = mungedMethodTraceName;
+			Emitter.emitFnCallTrace(gen, fn, fnName, argtypes, argLocals);
+			}
+            
 		
 		gen.visitCode();
 		Label loopLabel = gen.mark();
@@ -5651,8 +5660,8 @@ public static class FnMethod extends ObjMethod{
 			Var.popThreadBindings();
 			}
 
-		
-		Emitter.emitFnReturnTrace(gen, fn, this, returnType);
+		if(!this.skipFnCallTrace)
+			Emitter.emitFnReturnTrace(gen, fn.name(), fn.getCoord(), returnType);
 		
 		gen.returnValue();
 		//gen.visitMaxs(1, 1);
@@ -5739,7 +5748,14 @@ public static class FnMethod extends ObjMethod{
 		                                            //todo don't hardwire this
 		                                            EXCEPTION_TYPES,
 		                                            cv);
-		Emitter.emitFnCallTrace(gen, fn, this, argtypes, argLocals);
+
+		
+		if(!this.skipFnCallTrace)
+			{
+			String fnName = fn.name();
+			if(mungedMethodTraceName != null) fnName = mungedMethodTraceName;
+			Emitter.emitFnCallTrace(gen, fn, fnName, argtypes, argLocals);
+			}
 		
 		gen.visitCode();
 
@@ -5763,8 +5779,8 @@ public static class FnMethod extends ObjMethod{
 			Var.popThreadBindings();
 			}
 
-		
-		Emitter.emitFnReturnTrace(gen, fn, this , returnType);
+		if(!this.skipFnCallTrace)
+			Emitter.emitFnReturnTrace(gen, fn.name(), fn.getCoord(), returnType);
 
 		gen.returnValue();
 		//gen.visitMaxs(1, 1);
@@ -5810,7 +5826,12 @@ public static class FnMethod extends ObjMethod{
 		                                            EXCEPTION_TYPES,
 		                                            cv);
 
-		Emitter.emitFnCallTrace(gen, fn, this, argtypes, argLocals);
+		if(!this.skipFnCallTrace)
+			{
+			String fnName = fn.name();
+			if(mungedMethodTraceName != null) fnName = mungedMethodTraceName;
+			Emitter.emitFnCallTrace(gen, fn, fnName, argtypes, argLocals);
+			}
 				
 		gen.visitCode();
 
@@ -5835,7 +5856,8 @@ public static class FnMethod extends ObjMethod{
 			Var.popThreadBindings();
 			}
 
-		Emitter.emitFnReturnTrace(gen, fn, this, Type.getType(Object.class));
+		if(!this.skipFnCallTrace)
+			Emitter.emitFnReturnTrace(gen, fn.name(), fn.getCoord(), Type.getType(Object.class));
 			
 		gen.returnValue();
 		//gen.visitMaxs(1, 1);
@@ -8631,6 +8653,8 @@ public static class NewInstanceMethod extends ObjMethod{
 	Type retType;
 	Class retClass;
 	Class[] exclasses;
+	public IPersistentVector coord;
+	public boolean skipFnCallTrace = false;
 
 	static Symbol dummyThis = Symbol.intern(null,"dummy_this_dlskjsdfower");
 	private IPersistentVector parms;
@@ -8665,10 +8689,14 @@ public static class NewInstanceMethod extends ObjMethod{
 	                               Map overrideables) {
 		//(methodname [this-name args*] body...)
 		//this-name might be nil
-		NewInstanceMethod method = new NewInstanceMethod(objx, (ObjMethod) METHOD.deref());
+		NewInstanceMethod method = new NewInstanceMethod(objx, (ObjMethod) METHOD.deref());		
 		Symbol dotname = (Symbol)RT.first(form);
 		Symbol name = (Symbol) Symbol.intern(null,munge(dotname.name)).withMeta(RT.meta(dotname));
 		IPersistentVector parms = (IPersistentVector) RT.second(form);
+
+		method.coord = Utils.coordOf(form);
+		method.skipFnCallTrace = RT.meta(parms) !=null && RT.meta(parms).containsKey(SKIP_TRACE_KEY);
+		
 		if(parms.count() == 0)
 			{
 			throw new IllegalArgumentException("Must supply at least one argument for 'this' in: " + dotname);
@@ -8843,6 +8871,12 @@ public static class NewInstanceMethod extends ObjMethod{
 			}
 		gen.visitCode();
 
+		
+		String fqMethodName = Compiler.munge(Compiler.currentNS().name.name) + "$" + getMethodName();
+
+		if(!skipFnCallTrace)
+			Emitter.emitFnCallTrace(gen, obj, fqMethodName, extypes, argLocals);
+
 		Label loopLabel = gen.mark();
 
 		gen.visitLineNumber(line, loopLabel);
@@ -8864,6 +8898,10 @@ public static class NewInstanceMethod extends ObjMethod{
 			Var.popThreadBindings();
 			}
 
+		if(!skipFnCallTrace)
+			Emitter.emitFnReturnTrace(gen, fqMethodName, coord, retType);
+			
+            
 		gen.returnValue();
 		//gen.visitMaxs(1, 1);
 		gen.endMethod();
