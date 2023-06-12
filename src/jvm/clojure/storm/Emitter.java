@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import clojure.asm.Opcodes;
 import clojure.asm.Type;
 import clojure.asm.commons.GeneratorAdapter;
 import clojure.asm.commons.Method;
@@ -11,6 +12,7 @@ import clojure.lang.AFn;
 import clojure.lang.Compiler;
 import clojure.lang.Compiler.BindingInit;
 import clojure.lang.Compiler.FnExpr;
+import clojure.lang.Compiler.NewInstanceExpr;
 import clojure.lang.Compiler.FnMethod;
 import clojure.lang.Compiler.LocalBinding;
 import clojure.lang.Compiler.ObjExpr;
@@ -162,12 +164,14 @@ public class Emitter {
 		}	
 	}
 	
-	public static void emitFnCallTrace(GeneratorAdapter gen, ObjExpr fn, FnMethod method, Type[] argtypes, IPersistentVector arglocals) {
+	public static void emitFnCallTrace(GeneratorAdapter gen, ObjExpr objx, String mungedFnName, Type[] argtypes, IPersistentVector arglocals) {
 
-		boolean skipFn = skipInstrumentation(fn.name()) || method.skipFnCallTrace;
+		boolean skipFn = skipInstrumentation(mungedFnName);
+        
 		if (!skipFn) {
-			int formId = (Integer) Compiler.FORM_ID.deref();            
-			Symbol name = (method.methodTraceSymbol == null) ? Symbol.create(Compiler.demunge(fn.name())) : method.methodTraceSymbol;
+            
+			int formId = (Integer) Compiler.FORM_ID.deref();
+			Symbol name = Symbol.create(Compiler.demunge(mungedFnName));
 			String fnName = name.getName();
 			String fnNs = name.getNamespace();
 
@@ -179,23 +183,25 @@ public class Emitter {
 			gen.push(formId);
 			gen.invokeStatic(TRACER_CLASS_TYPE, Method.getMethod("void traceFnCall(clojure.lang.IPersistentVector, String, String, int)"));
 
-			emitBindTraces(gen, fn, arglocals, PersistentVector.EMPTY);                                       
+			emitBindTraces(gen, objx, arglocals, PersistentVector.EMPTY);                                       
 		}            
 	}    
  
-	public static void emitFnReturnTrace(GeneratorAdapter gen, ObjExpr fn, FnMethod method, Type retType) {
-		
-		boolean skipFn = skipInstrumentation(fn.name()) || method.skipFnCallTrace;
+	public static void emitFnReturnTrace(GeneratorAdapter gen, String mungedFnName, IPersistentVector coord, Type retType) {
+		boolean skipFn = skipInstrumentation(mungedFnName);
 		if (!skipFn) {
 			int formId = (Integer) Compiler.FORM_ID.deref();
-			if(Type.LONG_TYPE.equals(retType) || Type.DOUBLE_TYPE.equals(retType)) {
-				gen.dup2();
-				gen.valueOf(retType);		
-			}  else {
-				gen.dup();			
-			}
 
-			emitCoord(gen, fn.getCoord());
+			if(Type.VOID_TYPE.equals(retType))
+				{
+				gen.visitInsn(Opcodes.ACONST_NULL);
+				} else {
+				// assumes the stack contains the value to be traced
+				// duplicate the value for tracing, so we don't consume it
+				dupAndBox(gen, retType);
+				}
+										
+			emitCoord(gen, coord);
 				
 			gen.push(formId);
 			gen.invokeStatic(TRACER_CLASS_TYPE, Method.getMethod("void traceFnReturn(Object, String, int)"));
@@ -223,8 +229,8 @@ public class Emitter {
 			
 			int formId = (Integer)Compiler.FORM_ID.deref();
                 
-			if (objx instanceof FnExpr && !skipInstrumentation(((FnExpr)objx).name())) {
-				//System.out.println("@@@@ doing it for " + ((FnExpr) objx).name() + coord);
+			if ((objx instanceof FnExpr || objx instanceof NewInstanceExpr) && !skipInstrumentation(objx.name())) {
+                
 				// assumes the stack contains the value to be traced
 				// duplicate the value for tracing, so we don't consume it
 				dupAndBox(gen, retType);
