@@ -7391,8 +7391,12 @@ public static Object eval(Object form, boolean freshLoader) {
 		Object line = (meta != null ? meta.valAt(RT.LINE_KEY, LINE.deref()) : LINE.deref());
 		Object column = (meta != null ? meta.valAt(RT.COLUMN_KEY, COLUMN.deref()) : COLUMN.deref());
 		IPersistentMap bindings = RT.mapUniqueKeys(LINE, line, COLUMN, column, FORM_ID, formId);
-		
-		Tracer.registerFormObject(formId, currentNS().toString(), (String)file, (int) line, form);
+        
+		Tracer.registerFormObject(formId,
+			currentNS().toString(),
+			(String)file,
+			clojure.storm.Utils.toInt(line),
+			form);
 	
 		if(meta != null) {
 			Object eval_file = meta.valAt(RT.EVAL_FILE_KEY);
