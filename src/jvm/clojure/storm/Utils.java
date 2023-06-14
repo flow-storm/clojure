@@ -88,7 +88,14 @@ public class Utils {
 		} else {
 		return o;
 		}
-}
+	}
+
+	public static int toInt(Object n) {
+		if (n == null)                 return 0;
+		else if (n instanceof Integer) return (int) n;
+		else if (n instanceof Long)    return ((Long) n).intValue();
+		else return 0;
+	} 
 
 
 
