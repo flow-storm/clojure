@@ -1,15 +1,28 @@
 package clojure.storm;
 
 import clojure.lang.IObj;
+import clojure.lang.IPersistentCollection;
 import clojure.lang.IPersistentMap;
+import clojure.lang.IPersistentList;
 import clojure.lang.IPersistentVector;
+import clojure.lang.IPersistentSet;
+import clojure.lang.IRecord;
 import clojure.lang.ISeq;
+import clojure.lang.IFn;
+import clojure.lang.AFn;
 import clojure.lang.LispReader;
 import clojure.lang.MapEntry;
+import clojure.lang.Keyword;
 import clojure.lang.Namespace;
 import clojure.lang.PersistentHashMap;
+import clojure.lang.PersistentList;
+import clojure.lang.PersistentVector;
+import clojure.lang.PersistentHashSet;
 import clojure.lang.RT;
 import clojure.lang.Symbol;
+import java.util.Iterator;
+import java.util.List;
+import java.util.ArrayList;
 
 public class Utils {
 	
@@ -77,18 +90,142 @@ public class Utils {
 		return coord;
 	}
 
-	public static IObj addCoordMeta(IObj o) {
+	public static Object addCoordMeta(Object o, IPersistentVector coord) {
 		
-	Object meta = RT.meta(o);
-	IPersistentVector coord = (IPersistentVector) LispReader.COORD.deref();
-	if(coord != null)
+	Object meta = RT.meta(o);    
+	if(coord != null && o instanceof IObj)
 		{
 		meta = RT.assoc(meta, LispReader.COORD_KEY, coord);
-		return o.withMeta((IPersistentMap)meta);
+		return ((IObj)o).withMeta((IPersistentMap)meta);
 		} else {
 		return o;
 		}
 	}
+
+    private static String objCoord(String kind, Object form) {
+        return kind + clojure.lang.Util.hasheq(form);
+    }
+    
+    private static IPersistentCollection mapIndexed(IFn f, IPersistentCollection coll) {
+        List<Object> objs = new ArrayList<Object>();
+        
+        int i = 0;
+        Iterator<Object> iter = RT.iter(coll);
+        
+        while(iter.hasNext()) {
+            Object o = iter.next();
+            Object mappedO = f.invoke(i, o);
+            objs.add(mappedO);
+            i++;
+        }
+        if (coll instanceof PersistentVector) {
+            return PersistentVector.create(objs);
+        } else if (coll instanceof PersistentHashSet) {
+            return PersistentHashSet.create(objs);
+        } else {
+            return PersistentList.create(objs);
+            
+        }                
+    }
+    
+    private static Object walkCodeForm(IPersistentVector coord, IFn f, Object form) {
+        IFn walkCollection = new AFn() {
+		               public Object invoke(Object forms) {
+                           return mapIndexed(new AFn() {
+                               public Object invoke(Object idx, Object frm) {
+                                   return walkCodeForm((IPersistentVector) RT.conj(coord, idx), f, frm);
+                               }
+                               },
+                               (IPersistentCollection)forms);
+		               }
+        };
+        IFn walkSet = new AFn() {
+		               public Object invoke(Object forms) {
+                           return (IPersistentSet) mapIndexed(new AFn() {
+                               public Object invoke(Object idx, Object frm) {                        
+                                   return walkCodeForm((IPersistentVector) RT.conj(coord, objCoord("K", frm)), f, frm);
+                               }
+                               },
+                               (IPersistentSet)forms);
+		               }
+        };
+
+        IFn walkMap = new AFn() {
+            public Object invoke(Object m) {
+                List<Object> kvs = new ArrayList<Object>();
+                Iterator<Object> iter = RT.iter(m);
+                while(iter.hasNext()) {
+                    MapEntry e = (MapEntry) iter.next();
+                    Object kfrm = e.getKey();
+                    Object vfrm = e.getValue();
+                    kvs.add(walkCodeForm((IPersistentVector) RT.conj(coord, objCoord("K", kfrm)), f, kfrm));
+                    kvs.add(walkCodeForm((IPersistentVector) RT.conj(coord, objCoord("V", kfrm)), f, vfrm));
+                }
+                Object[] r = kvs.toArray();
+                return RT.map(r);
+                }
+            };
+
+        Object result = null;
+        if ((form instanceof IPersistentMap) && !(form instanceof IRecord)) {
+            result = walkMap.invoke(form);
+        } else if (form instanceof IPersistentSet) {
+            result = walkSet.invoke(form);            
+        } else if (form instanceof IPersistentCollection) {
+            result = walkCollection.invoke(form);
+        } else {
+                result = form;
+        }
+                
+        return f.invoke(coord, mergeMeta(result, RT.meta(form)));
+    }
+
+    public static Object tagFormRecursively(Object form) {
+        return walkCodeForm(
+            PersistentVector.EMPTY,
+            new AFn() {            
+            public Object invoke(Object coord, Object frm) {
+                if ((frm instanceof clojure.lang.ISeq) || (frm instanceof clojure.lang.Symbol))
+                    return addCoordMeta(frm, (IPersistentVector)coord);
+                else
+                    return frm;
+            }
+            },
+            form
+            );
+    }
+
+    static public Object tagStormCoord(Object form) {
+        if((Boolean)clojure.storm.Emitter.INSTRUMENTATION_ENABLE.deref()) {
+            try {            
+                Object tagged = Utils.tagFormRecursively(form);            
+                return tagged;
+                } catch (Throwable e) {                
+                e.printStackTrace();
+                return form;
+                }                
+            }        
+        else
+            return form;
+        }
+
+
+    public static Object stripStormMeta(Object form) {
+        return walkCodeForm(
+            PersistentVector.EMPTY,
+            new AFn() {            
+                public Object invoke(Object coord, Object frm) {
+                    if ((frm instanceof clojure.lang.ISeq) || (frm instanceof clojure.lang.Symbol)){
+                        IObj mfrm = (IObj) frm;
+                        IPersistentMap frmMeta = RT.meta(mfrm);
+                        return mfrm.withMeta((IPersistentMap) RT.dissoc(frmMeta, LispReader.COORD_KEY));                        
+                    } else
+                        return frm;
+                    }
+                },
+            form
+            );
+        }
 
 	public static int toInt(Object n) {
 		if (n == null)                 return 0;

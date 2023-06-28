@@ -216,7 +216,7 @@ public class Emitter {
 
 		StringBuilder strCoordBuilder = new StringBuilder();
 		for (int i = 0; i < coord.count(); i++) {
-			strCoordBuilder.append((int)coord.nth(i));
+			strCoordBuilder.append(coord.nth(i));
 			if(i < (coord.count()-1))
 				strCoordBuilder.append(",");
 		}

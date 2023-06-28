@@ -7881,11 +7881,11 @@ public static Object load(Reader rdr, String sourcePath, String sourceName) {
 	try
 		{
 		Object r = null;
-		do {
-			Var.pushThreadBindings(RT.map(LispReader.ADD_STORM_META, true));
+		do {            
 			r = LispReader.read(pushbackReader, false, EOF, false, readerOpts);
-			Var.popThreadBindings();
-			
+                                   
+            Object rWithMeta = clojure.storm.Utils.tagStormCoord(r);
+                        
 			int formId = 0;
 			if (r != null) formId = r.hashCode();
 			Var.pushThreadBindings(RT.mapUniqueKeys(FORM_ID, formId));
@@ -7893,19 +7893,42 @@ public static Object load(Reader rdr, String sourcePath, String sourceName) {
 			consumeWhitespaces(pushbackReader);
 			LINE_AFTER.set(pushbackReader.getLineNumber());
 			COLUMN_AFTER.set(pushbackReader.getColumnNumber());
-			ret = eval(r,false);
+            try {
+                // Try to eval instrumented
+                ret = eval(rWithMeta,false);
+            } catch (Throwable e) {
+                if(e instanceof CompilerException &&
+                    e.getCause() instanceof IndexOutOfBoundsException &&
+                    e.getCause().getMessage().equals("Method code too large!"))
+                    {                        
+                    System.out.println("Method code too large after instrumentation, will re-evaluate uninstrumented.");
+                    System.out.println("Method file : " + sourcePath);
+                    System.out.println("Method source : " + r);
+
+                    // Since method is too large just evaluate the original form with instrumentation disabled 
+                    Var.pushThreadBindings(RT.map(Emitter.INSTRUMENTATION_ENABLE, false));                    
+                    ret = eval(r,false);
+                    Var.popThreadBindings();
+                    
+                    System.out.println("Re evaluation done");
+                    
+                    } else {
+                       throw e;
+                    }
+                }
+
 			LINE_BEFORE.set(pushbackReader.getLineNumber());
 			COLUMN_BEFORE.set(pushbackReader.getColumnNumber());
 
 			Var.popThreadBindings();
-			} while (r != EOF);
+            } while (r != EOF);
 		}
 	catch(LispReader.ReaderException e)
 		{
 		throw new CompilerException(sourcePath, e.line, e.column, null, CompilerException.PHASE_READ, e.getCause());
 		}
 	catch(Throwable e)
-		{
+        {
 		if(!(e instanceof CompilerException))
 			throw new CompilerException(sourcePath, (Integer) LINE_BEFORE.deref(), (Integer) COLUMN_BEFORE.deref(), null, CompilerException.PHASE_EXECUTION, e);
 		else
