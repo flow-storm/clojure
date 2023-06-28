@@ -363,8 +363,7 @@ by default when a new command-line REPL is started."} repl-requires
   "Evaluates body with *read-eval* set to a \"known\" value,
    i.e. substituting true for :unknown if necessary."
   [& body]
-  `(binding [*read-eval* (if (= :unknown *read-eval*) true *read-eval*)
-             *add-storm-meta?* true]
+  `(binding [*read-eval* (if (= :unknown *read-eval*) true *read-eval*)]
      ~@body))
 
 (defn repl
@@ -438,7 +437,7 @@ by default when a new command-line REPL is started."} repl-requires
           (try
             (let [read-eval *read-eval*
                   input (try
-                          (with-read-known (read request-prompt request-exit))
+                          (with-read-known (clojure.storm.Utils/tagStormCoord (read request-prompt request-exit)))
                           (catch LispReader$ReaderException e
                             (throw (ex-info nil {:clojure.error/phase :read-source} e))))]
               (or (storm-repl/maybe-execute-storm-specials input)

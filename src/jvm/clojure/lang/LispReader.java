@@ -38,6 +38,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import clojure.storm.Emitter;
 import clojure.storm.Utils;
 
 public class LispReader{
@@ -62,8 +63,6 @@ static Symbol READ_COND_SPLICING = Symbol.intern("clojure.core", "read-cond-spli
 static Keyword UNKNOWN = Keyword.intern(null, "unknown");
 //static Symbol DEREF_BANG = Symbol.intern("clojure.core", "deref!");
 
-public static Keyword COORD_KEY = Keyword.intern("clojure.storm", "coord");
-	
 static IFn[] macros = new IFn[256];
 static IFn[] dispatchMacros = new IFn[256];
 //static Pattern symbolPat = Pattern.compile("[:]?([\\D&&[^:/]][^:/]*/)?[\\D&&[^:/]][^:/]*");
@@ -84,13 +83,9 @@ static Pattern floatPat = Pattern.compile("([-+]?[0-9]+(\\.[0-9]*)?([eE][-+]?[0-
 static Var GENSYM_ENV = Var.create(null).setDynamic();
 //sorted-map num->gensymbol
 static Var ARG_ENV = Var.create(null).setDynamic();
-
-static final public Var ADD_STORM_META = Var.intern(Namespace.findOrCreate(Symbol.intern("clojure.core")),
-	Symbol.intern("*add-storm-meta?*"), false).setDynamic();
-// keep the current coordinate while reading forms
-public static Var COORD = Var.create(PersistentVector.EMPTY).setDynamic();
-	
 static IFn ctorReader = new CtorReader();
+
+public static Keyword COORD_KEY = Keyword.intern("clojure.storm", "coord");
 
 // Dynamic var set to true in a read-cond context
 static Var READ_COND_ENV = Var.create(null).setDynamic();
@@ -214,20 +209,19 @@ static public Object read(PushbackReader r, Object opts){
     }
     return read(r,eofIsError,eofValue,false,opts);
 }
-
+    
 static public Object read(PushbackReader r, boolean eofIsError, Object eofValue, boolean isRecursive)
 {
     return read(r, eofIsError, eofValue, isRecursive, PersistentHashMap.EMPTY);
 }
-
 static public Object read(PushbackReader r, boolean eofIsError, Object eofValue, boolean isRecursive, Object opts)
 {
 	// start with pendingForms null as reader conditional splicing is not allowed at top level
-	return read(r, eofIsError, eofValue, null, null, isRecursive, opts, null, (Resolver) RT.READER_RESOLVER.deref());
+    return read(r, eofIsError, eofValue, null, null, isRecursive, opts, null, (Resolver) RT.READER_RESOLVER.deref());
 }
 
-static private Object read(PushbackReader r, boolean eofIsError, Object eofValue, boolean isRecursive, Object opts, Object pendingForms) {
-	return read(r, eofIsError, eofValue, null, null, isRecursive, opts, ensurePending(pendingForms), (Resolver) RT.READER_RESOLVER.deref());
+static private Object read(PushbackReader r, boolean eofIsError, Object eofValue, boolean isRecursive, Object opts, Object pendingForms) {    
+    return read(r, eofIsError, eofValue, null, null, isRecursive, opts, ensurePending(pendingForms), (Resolver) RT.READER_RESOLVER.deref());
 }
 
 static private Object ensurePending(Object pendingForms) {
@@ -293,7 +287,6 @@ static private Object read(PushbackReader r, boolean eofIsError, Object eofValue
 			if(macroFn != null)
 				{
 				Object ret = macroFn.invoke(r, (char) ch, opts, pendingForms);
-
 				//no op macros return the reader
 				if(ret == r)
 					continue;
@@ -423,6 +416,7 @@ static private Object interpretToken(String s, Resolver resolver) {
 	throw Util.runtimeException("Invalid token: " + s);
 }
 
+
 private static Object matchSymbol(String s, Resolver resolver){
 	Matcher m = symbolPat.matcher(s);
 	if(m.matches())
@@ -468,11 +462,7 @@ private static Object matchSymbol(String s, Resolver resolver){
 		Symbol sym = Symbol.intern(s.substring(isKeyword ? 1 : 0));
 		if(isKeyword)
 			return Keyword.intern(sym);
-
-		if((boolean)ADD_STORM_META.deref())			
-			return Utils.addCoordMeta(sym);
-		else
-			return sym;
+		return sym;
 		}
 	return null;
 }
@@ -653,7 +643,6 @@ public static class DiscardReader extends AFn{
 // ::{:c 1}   => {:a.b/c 1}  (where *ns* = a.b)
 // ::a{:c 1}  => {:a.b/c 1}  (where a is aliased to a.b)
 public static class NamespaceMapReader extends AFn{
-
 	public Object invoke(Object reader, Object colon, Object opts, Object pendingForms) {
 		PushbackReader r = (PushbackReader) reader;
 
@@ -881,10 +870,7 @@ public static class FnReader extends AFn{
 		try
 			{
 			Var.pushThreadBindings(
-				RT.map(ARG_ENV, PersistentTreeMap.EMPTY,
-					// #(...) gets read as (fn [...] (...)) so we want to fix it
-					// by adding 2 to the coord to move it right
-					COORD, RT.conj((IPersistentVector)COORD.deref(), 2)));
+					RT.map(ARG_ENV, PersistentTreeMap.EMPTY));
 			unread(r, '(');
 			Object form = read(r, true, null, true, opts, ensurePending(pendingForms));
 
@@ -1140,7 +1126,7 @@ public static class SyntaxQuoteReader extends AFn{
 		if(form instanceof IObj && RT.meta(form) != null)
 			{
 			//filter line and column numbers
-			IPersistentMap newMeta = ((IObj) form).meta().without(RT.LINE_KEY).without(RT.COLUMN_KEY).without(COORD_KEY);
+			IPersistentMap newMeta = ((IObj) form).meta().without(RT.LINE_KEY).without(RT.COLUMN_KEY);
 			if(newMeta.count() > 0)
 				return RT.list(WITH_META, ret, syntaxQuote(((IObj) form).meta()));
 			}
@@ -1249,7 +1235,6 @@ public static class CharacterReader extends AFn{
 }
 
 public static class ListReader extends AFn{
-
 	public Object invoke(Object reader, Object leftparen, Object opts, Object pendingForms) {
 		PushbackReader r = (PushbackReader) reader;
 		int line = -1;
@@ -1266,13 +1251,9 @@ public static class ListReader extends AFn{
 //		IObj s = (IObj) RT.seq(list);
 		if(line != -1)
 			{
-			if ((boolean)ADD_STORM_META.deref())
-				s = Utils.addCoordMeta(s);
-			
 			Object meta = RT.meta(s);
 			meta = RT.assoc(meta, RT.LINE_KEY, RT.get(meta, RT.LINE_KEY, line));
-			meta = RT.assoc(meta, RT.COLUMN_KEY, RT.get(meta,RT.COLUMN_KEY, column));          
-            
+			meta = RT.assoc(meta, RT.COLUMN_KEY, RT.get(meta,RT.COLUMN_KEY, column));
 			return s.withMeta((IPersistentMap)meta);
 			}
 		else
@@ -1373,7 +1354,6 @@ public static class VectorReader extends AFn{
 }
 
 public static class MapReader extends AFn{
-
 	public Object invoke(Object reader, Object leftparen, Object opts, Object pendingForms) {
 		PushbackReader r = (PushbackReader) reader;
 		Object[] a = readDelimitedList('}', r, true, opts, ensurePending(pendingForms)).toArray();
@@ -1385,7 +1365,6 @@ public static class MapReader extends AFn{
 }
 
 public static class SetReader extends AFn{
-
 	public Object invoke(Object reader, Object leftbracket, Object opts, Object pendingForms) {
 		PushbackReader r = (PushbackReader) reader;
 		return PersistentHashSet.createWithCheck(readDelimitedList('}', r, true, opts, ensurePending(pendingForms)));
@@ -1418,23 +1397,11 @@ public static List readDelimitedList(char delim, PushbackReader r, boolean isRec
 	ArrayList a = new ArrayList();
 	Resolver resolver = (Resolver) RT.READER_RESOLVER.deref();
 
-	Integer cIdx = 0;
-	
-	PersistentVector curr_coord = (PersistentVector) COORD.deref(); 
-	
 	for(; ;) {
 
-		PersistentVector coord = (PersistentVector) RT.conj(curr_coord, cIdx);
-		
-		cIdx++;
-
-		Var.pushThreadBindings(RT.map(COORD, coord));
-		
 		Object form = read(r, false, READ_EOF, delim, READ_FINISHED, isRecursive, opts, pendingForms,
                            resolver);
-		
-		Var.popThreadBindings();
-		
+
 		if (form == READ_EOF) {
 			if (firstline < 0)
 				throw Util.runtimeException("EOF while reading");
