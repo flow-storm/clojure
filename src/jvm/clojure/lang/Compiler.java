@@ -7880,10 +7880,10 @@ public static Object load(Reader rdr, String sourcePath, String sourceName) {
 	Object readerOpts = readerOpts(sourceName);
 	try
 		{
-		Object r = null;
-		do {            
-			r = LispReader.read(pushbackReader, false, EOF, false, readerOpts);
-                                   
+        for(Object r = LispReader.read(pushbackReader, false, EOF, false, readerOpts); r != EOF;
+            r = LispReader.read(pushbackReader, false, EOF, false, readerOpts))
+			{            
+            
             Object rWithMeta = clojure.storm.Utils.tagStormCoord(r);
                         
 			int formId = 0;
@@ -7896,7 +7896,7 @@ public static Object load(Reader rdr, String sourcePath, String sourceName) {
             try {
                 // Try to eval instrumented
                 ret = eval(rWithMeta,false);
-            } catch (Throwable e) {
+                } catch (Throwable e) {
                 if(e instanceof CompilerException &&
                     e.getCause() instanceof IndexOutOfBoundsException &&
                     e.getCause().getMessage().equals("Method code too large!"))
@@ -7916,12 +7916,12 @@ public static Object load(Reader rdr, String sourcePath, String sourceName) {
                        throw e;
                     }
                 }
-
+            
 			LINE_BEFORE.set(pushbackReader.getLineNumber());
 			COLUMN_BEFORE.set(pushbackReader.getColumnNumber());
 
 			Var.popThreadBindings();
-            } while (r != EOF);
+            }
 		}
 	catch(LispReader.ReaderException e)
 		{

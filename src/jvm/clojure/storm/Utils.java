@@ -102,8 +102,30 @@ public class Utils {
 		}
 	}
 
-    private static String objCoord(String kind, Object form) {
-        return kind + clojure.lang.Util.hasheq(form);
+    public static long clojureFormSourceHash(String s) {
+        long M = 4294967291L;
+        String cleanS = s.replaceAll("#[/.a-zA-Z0-9_-]+", "") // remove tags
+            .replaceAll("\\^:[a-zA-Z0-9_-]+","")              // remove meta keys
+            .replaceAll("\\^\\{.+?\\}","")                    // remove meta maps
+            .replaceAll(";.+\n","")                           // remove comments
+            .replaceAll("[ \t\n]+","");                       // remove non visible
+        long sum = 0;
+        long mul = 1;
+        int i = 0;
+
+        while (i < cleanS.length()) {
+            int cval = (int)cleanS.charAt(i);
+            mul = ((i % 4) == 0)? 1 : mul * 256;
+            sum = sum + cval*mul;
+            i++;
+        }
+
+        return sum % M;
+    }
+
+    public static String objCoord(String kind, Object form) {
+        long hash = (form == null)? 0 : clojureFormSourceHash(form.toString());
+        return kind + hash;
     }
     
     private static IPersistentCollection mapIndexed(IFn f, IPersistentCollection coll) {
