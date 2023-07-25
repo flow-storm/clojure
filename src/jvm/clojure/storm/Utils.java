@@ -60,9 +60,14 @@ public class Utils {
 		}
 
 	public static Symbol maybeGetTraceSymbol(Symbol sym, ISeq form){
+        // If the form is the expansion of a defmethod we use the symbol of
+        // the defmethod as a trace symbol.
+        // There are rare cases (flow-storm-debugger/issues/90) where defmethod can be
+        // used without a symbol there, but we skip them for now since they are very rare
 		if (sym.getNamespace() != null &&
 			sym.getNamespace().equals("clojure.core") &&
-			sym.getName().equals("addMethod"))
+			sym.getName().equals("addMethod") &&
+            RT.second(form) instanceof Symbol)
 			{
             
 			Symbol nameSym = (Symbol) RT.second(form);
