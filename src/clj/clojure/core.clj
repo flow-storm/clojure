@@ -2036,6 +2036,15 @@
    :static true}
   [sym] (. clojure.lang.Var (find sym)))
 
+(defmacro with-storm-ex-handling [& body]
+  `(try
+     ~@body
+     (catch Throwable t#
+       (clojure.storm.Tracer/handleThreadException
+        (Thread/currentThread)
+        t#)
+       (throw t#))))
+
 (defn binding-conveyor-fn
   {:private true
    :added "1.3"}
@@ -2044,19 +2053,19 @@
     (fn 
       ([]
          (clojure.lang.Var/resetThreadBindingFrame frame)
-         (f))
+         (with-storm-ex-handling (f)))
       ([x]
          (clojure.lang.Var/resetThreadBindingFrame frame)
-         (f x))
+         (with-storm-ex-handling (f x)))
       ([x y]
          (clojure.lang.Var/resetThreadBindingFrame frame)
-         (f x y))
+         (with-storm-ex-handling (f x y)))
       ([x y z]
          (clojure.lang.Var/resetThreadBindingFrame frame)
-         (f x y z))
+         (with-storm-ex-handling (f x y z)))
       ([x y z & args] 
          (clojure.lang.Var/resetThreadBindingFrame frame)
-         (apply f x y z args)))))
+         (with-storm-ex-handling (apply f x y z args))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Refs ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn ^{:private true}
@@ -7058,15 +7067,7 @@ fails, attempts to require sym's namespace and retries."
   {:added "1.1"
    :static true}
   [f]
-  (let [f (binding-conveyor-fn
-           (fn [& args]
-             (try
-               (apply f args)
-               (catch Throwable t
-                 (clojure.storm.Tracer/handleThreadException
-                  (Thread/currentThread)
-                  t)
-                 (throw t)))))
+  (let [f (binding-conveyor-fn f)
         fut (.submit clojure.lang.Agent/soloExecutor ^Callable f)]
     (reify 
      clojure.lang.IDeref 
