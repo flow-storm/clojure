@@ -450,8 +450,7 @@ by default when a new command-line REPL is started."} repl-requires
                      (print value)
                      (catch Throwable e
                        (throw (ex-info nil {:clojure.error/phase :print-eval-result} e)))))))
-            (catch Throwable e
-              (clojure.storm.Tracer/handleThreadException (Thread/currentThread) e)
+            (catch Throwable e              
               (caught e)
               (set! *e e))))]
     (with-bindings

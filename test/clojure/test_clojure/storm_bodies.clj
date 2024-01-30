@@ -13,6 +13,28 @@
             [:fn-return 4 ""]]           
            (u/capture)) "captured traces should match.")))
 
+(deftest uncached-throw-test
+  (let [r (try
+            (b/uncached-throw)
+            (catch Exception e :throwed))]
+    (is (= :throwed r) "function should have throwed")
+    (is (= [[:fn-call "clojure.test-clojure.storm-test-code.bodies" "uncached-throw" [] 856953197]
+            [:fn-unwind "Dang" ""]]           
+           (u/capture)) "captured traces should match.")))
+
+(deftest uncached-throw-inner-test
+  (let [r (try
+            (b/uncached-throw-inner)
+            (catch Exception e :throwed))]
+    (is (= :throwed r) "function should have throwed")
+    (is (= [[:fn-call "clojure.test-clojure.storm-test-code.bodies" "uncached-throw-inner" [] -1606443558]
+            [:bind "f" "#object[...]" "3"]
+            [:expr-exec "#object[...]" "3,2,0"]
+            [:fn-call "clojure.test-clojure.storm-test-code.bodies" "uncached-throw-inner/inner--GEN-ID" [] -1606443558]
+            [:fn-unwind "Dang" "3,1,1"]
+            [:fn-unwind "Dang" ""]]           
+           (u/capture)) "captured traces should match.")))
+
 (deftest letfn-test
   (let [r (b/letfn-fn)]
     (is (= 5 r) "function return should be right.")
