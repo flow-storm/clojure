@@ -9,6 +9,7 @@ import java.util.regex.Pattern;
 
 import clojure.asm.Opcodes;
 import clojure.asm.Type;
+import clojure.asm.Label;
 import clojure.asm.commons.GeneratorAdapter;
 import clojure.asm.commons.Method;
 import clojure.lang.AFn;
@@ -193,35 +194,64 @@ public class Emitter {
 			gen.dup();
 		}	
 	}
-	
-	public static void emitFnCallTrace(GeneratorAdapter gen, ObjExpr objx, String mungedFnName, Type[] argtypes, IPersistentVector arglocals) {
+
+    /**
+     * Emit the bytecode for a function prologue that will trace the function call and also add and return a label
+     * that can be used by the function epilogue emition code to wrap the fn body on a try/catch
+    */
+	public static Label emitFnPrologue(GeneratorAdapter gen, ObjExpr objx, String mungedFnName, Type[] argtypes, IPersistentVector arglocals) {
 
 		boolean skipFn = skipInstrumentation(mungedFnName);
         
 		if (fnCallInstrumentationEnable && !skipFn) {
+
+            
+            Label startTry = gen.newLabel();
+            gen.mark(startTry);
+            
             Integer formId = (Integer) Compiler.FORM_ID.deref();
-            if (formId == null) formId = 0;            
+            if (formId == null) formId = 0;
 			Symbol name = Symbol.create(Compiler.demunge(mungedFnName));
 			String fnName = name.getName();
 			String fnNs = name.getNamespace();
 
-			gen.loadArgArray();
-			gen.invokeStatic(Type.getType(clojure.lang.PersistentVector.class), Method.getMethod("clojure.lang.PersistentVector create(Object[])"));
+            // push all the args array on the stack and then            
+			gen.loadArgArray(); 
             
-			gen.push(fnNs);
-			gen.push(fnName);
-			gen.push((int)formId);
-			gen.invokeStatic(TRACER_CLASS_TYPE, Method.getMethod("void traceFnCall(clojure.lang.IPersistentVector, String, String, int)"));
+			gen.push(fnNs); // push the function namespace
+			gen.push(fnName); // push the function name
+			gen.push((int)formId); // push the form-id
+			gen.invokeStatic(TRACER_CLASS_TYPE, Method.getMethod("void traceFnCall(Object[], String, String, int)")); // trace the function call
 
-			emitBindTraces(gen, objx, arglocals, PersistentVector.EMPTY);                                       
-		}            
+            // emit binds for all function's arguments
+			emitBindTraces(gen, objx, arglocals, PersistentVector.EMPTY);
+            
+            return startTry;
+            }
+        
+        return null;
 	}    
- 
-	public static void emitFnReturnTrace(GeneratorAdapter gen, String mungedFnName, IPersistentVector coord, Type retType) {
-		boolean skipFn = skipInstrumentation(mungedFnName);
-		if (fnReturnInstrumentationEnable && !skipFn) {            
+
+    /**
+     * Emit the bytecode for a function epilogue that will trace the function return.
+     * If a tryStartLabel is provided the epilogue will make sure that the entire function body is wrapped in a
+     * try/catch block so if any exception arises during the functions body execution it will trace a stack unwind.
+    */
+	public static void emitFnEpilogue(GeneratorAdapter gen, String mungedFnName, IPersistentVector coord, Type retType, Label tryStartLabel) {
+        
+        boolean skipFn = skipInstrumentation(mungedFnName);
+        
+		if (fnReturnInstrumentationEnable && !skipFn) {
+
+            Label tryEndLabel = gen.newLabel();
+            Label retLabel = gen.newLabel();
+            Label catchHandlerLabel = gen.newLabel();
+
             Integer formId = (Integer) Compiler.FORM_ID.deref();
-            if (formId == null) formId = 0;            
+            if (formId == null) formId = 0;
+            
+            // trace the return
+            // push a copy of the return value
 			if(Type.VOID_TYPE.equals(retType))
 				{
 				gen.visitInsn(Opcodes.ACONST_NULL);
@@ -230,11 +260,31 @@ public class Emitter {
 				// duplicate the value for tracing, so we don't consume it
 				dupAndBox(gen, retType);
 				}
-										
-			emitCoord(gen, coord);
-				
-			gen.push((int)formId);
-			gen.invokeStatic(TRACER_CLASS_TYPE, Method.getMethod("void traceFnReturn(Object, String, int)"));
+                        
+			emitCoord(gen, coord); // push the coord				
+            gen.push((int) formId); // push the formId
+			gen.invokeStatic(TRACER_CLASS_TYPE, Method.getMethod("void traceFnReturn(Object, String, int)")); // trace the return
+
+            // if we have a tryStartLabel it means that the fnCall was also instrumented, so we can
+            // wrap a try/catch over the fn body
+            if(tryStartLabel != null) {
+                gen.goTo(retLabel); // jump to the return, skipping exception handling code
+            
+                gen.mark(tryEndLabel); // closing try block label
+            
+                gen.mark(catchHandlerLabel); // if anything is thrown in the fn code, handle it here
+                // Throwable handler code, if we got here we have the Throwable obj on the stack
+				gen.dup(); // copy the throwable ref so we can trace it
+                emitCoord(gen, coord); // push the coord
+                gen.push((int)formId); // push the formId
+                gen.invokeStatic(TRACER_CLASS_TYPE, Method.getMethod("void traceFnUnwind(Object, String, int)")); // trace the return                
+                gen.throwException(); // re-throw the throwable we have on the stack
+
+                // setup our throwable catch handler
+                gen.visitTryCatchBlock(tryStartLabel, tryEndLabel, catchHandlerLabel, "java/lang/Throwable");
+            
+                gen.mark(retLabel);
+            }            
 		}
 	}
 

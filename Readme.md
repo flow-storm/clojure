@@ -22,14 +22,16 @@ The important bits here are :
 
 ## Hooking into ClojureStorm
 
-Instructions here apply to ClojureStorm >= `1.11.1-12` and `1.12.0-alpha4_6`
+Instructions here apply to ClojureStorm >= `1.11.1-19` and `1.12.0-alpha4_14`
 
 ```clojure
 (clojure.storm.Tracer/setTraceFnsCallbacks
  {:trace-fn-call-fn (fn [_ fn-ns fn-name fn-args-vec form-id]
-                      (prn "fn-call " fn-ns fn-name fn-args-vec form-id))
+                      (prn "fn-call " fn-ns fn-name (into [] fn-args-vec) form-id))
   :trace-fn-return-fn (fn [_ ret coord form-id]
                         (prn "fn-return" ret coord form-id))
+  :trace-fn-unwind-fn (fn [_ throwable coord form-id]
+                        (prn "fn-unwind" throwable coord form-id))
   :trace-expr-fn (fn [_ val coord form-id]
                    (prn "expr" val coord form-id))
   :trace-bind-fn (fn [_ coord sym-name bind-val]

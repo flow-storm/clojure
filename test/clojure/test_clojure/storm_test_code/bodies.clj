@@ -7,6 +7,14 @@
     (catch Exception e
       (+ 2 2))))
 
+(defn uncached-throw []
+  (throw (Exception. "Dang")))
+
+(defn uncached-throw-inner []
+  (let [f (fn inner []
+            (throw (Exception. "Dang")))]
+    (f)))
+
 (defn letfn-fn []
   (letfn [(square [x]
             (* x x))]
