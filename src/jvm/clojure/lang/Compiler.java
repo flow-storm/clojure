@@ -6151,11 +6151,12 @@ public static class FnMethod extends ObjMethod{
 		                                            EXCEPTION_TYPES,
 		                                            cv);
 
+        Label prologueTryStartLabel = null;
 		if(!this.skipFnCallTrace)
 			{
 			String fnName = fn.name();
 			if(mungedMethodTraceName != null) fnName = mungedMethodTraceName;
-			Emitter.emitFnCallTrace(gen, fn, fnName, argtypes, argLocals);
+			prologueTryStartLabel = Emitter.emitFnPrologue(gen, fn, fnName, argtypes, argLocals);
 			}
             
 		
@@ -6180,7 +6181,7 @@ public static class FnMethod extends ObjMethod{
 			}
 
 		if(!this.skipFnCallTrace)
-			Emitter.emitFnReturnTrace(gen, fn.name(), fn.getCoord(), returnType);
+			Emitter.emitFnEpilogue(gen, fn.name(), fn.getCoord(), returnType, prologueTryStartLabel);
 		
 		gen.returnValue();
 		//gen.visitMaxs(1, 1);
@@ -6268,12 +6269,12 @@ public static class FnMethod extends ObjMethod{
 		                                            EXCEPTION_TYPES,
 		                                            cv);
 
-		
+		Label prologueTryStartLabel = null;
 		if(!this.skipFnCallTrace)
 			{
 			String fnName = fn.name();
 			if(mungedMethodTraceName != null) fnName = mungedMethodTraceName;
-			Emitter.emitFnCallTrace(gen, fn, fnName, argtypes, argLocals);
+			prologueTryStartLabel = Emitter.emitFnPrologue(gen, fn, fnName, argtypes, argLocals);
 			}
 		
 		gen.visitCode();
@@ -6299,7 +6300,7 @@ public static class FnMethod extends ObjMethod{
 			}
 
 		if(!this.skipFnCallTrace)
-			Emitter.emitFnReturnTrace(gen, fn.name(), fn.getCoord(), returnType);
+			Emitter.emitFnEpilogue(gen, fn.name(), fn.getCoord(), returnType, prologueTryStartLabel);
 
 		gen.returnValue();
 		//gen.visitMaxs(1, 1);
@@ -6344,12 +6345,12 @@ public static class FnMethod extends ObjMethod{
 		                                            //todo don't hardwire this
 		                                            EXCEPTION_TYPES,
 		                                            cv);
-
+        Label prologueTryStartLabel = null;
 		if(!this.skipFnCallTrace)
 			{
 			String fnName = fn.name();
 			if(mungedMethodTraceName != null) fnName = mungedMethodTraceName;
-			Emitter.emitFnCallTrace(gen, fn, fnName, argtypes, argLocals);
+			prologueTryStartLabel = Emitter.emitFnPrologue(gen, fn, fnName, argtypes, argLocals);
 			}
 				
 		gen.visitCode();
@@ -6376,7 +6377,7 @@ public static class FnMethod extends ObjMethod{
 			}
 
 		if(!this.skipFnCallTrace)
-			Emitter.emitFnReturnTrace(gen, fn.name(), fn.getCoord(), Type.getType(Object.class));
+			Emitter.emitFnEpilogue(gen, fn.name(), fn.getCoord(), Type.getType(Object.class), prologueTryStartLabel);
 			
 		gen.returnValue();
 		//gen.visitMaxs(1, 1);
@@ -7868,7 +7869,7 @@ public static Object eval(Object form) {
 		if (ce instanceof CompilerException)
 			{
 			Throwable cause = ce.getCause();
-			if(cause != null && (cause.getMessage().equals("Method code too large!")))
+			if(cause != null && cause.getMessage() !=null && cause.getMessage().equals("Method code too large!"))
 				{
 				System.out.println("Method too large, re-evaluating without storm instrumentation.");                
 				Var.pushThreadBindings(RT.map(Emitter.INSTRUMENTATION_ENABLE, false));
@@ -9461,8 +9462,9 @@ public static class NewInstanceMethod extends ObjMethod{
 		
 		String fqMethodName = Compiler.munge(Compiler.currentNS().name.name) + "$" + getMethodName();
 
+        Label prologueTryStartLabel = null;
 		if(!skipFnCallTrace)
-			Emitter.emitFnCallTrace(gen, obj, fqMethodName, extypes, argLocals);
+			prologueTryStartLabel = Emitter.emitFnPrologue(gen, obj, fqMethodName, extypes, argLocals);
 
 		Label loopLabel = gen.mark();
 
@@ -9486,7 +9488,7 @@ public static class NewInstanceMethod extends ObjMethod{
 			}
 
 		if(!skipFnCallTrace)
-			Emitter.emitFnReturnTrace(gen, fqMethodName, coord, retType);
+			Emitter.emitFnEpilogue(gen, fqMethodName, coord, retType, prologueTryStartLabel);
 			
             
 		gen.returnValue();
