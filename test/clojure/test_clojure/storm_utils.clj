@@ -18,16 +18,19 @@
 
 (defn reset-captured-traces-fixture [f]
   (clojure.storm.Tracer/setTraceFnsCallbacks
-   {:trace-fn-call-fn-key
+   {:trace-fn-call-fn
     (fn [_ fn-ns fn-name args form-id]
       (swap! captured-traces conj [:fn-call fn-ns (stable-fn-name fn-name) (into [] (map maybe-serialize) args) form-id]))
-    :trace-fn-return-fn-key
+    :trace-fn-return-fn
     (fn [_ ret-val coord _]
       (swap! captured-traces conj [:fn-return (maybe-serialize ret-val) coord]))
-    :trace-expr-fn-key
+    :trace-fn-unwind-fn
+    (fn [_ throwable coord _]
+      (swap! captured-traces conj [:fn-unwind (maybe-serialize (.getMessage throwable)) coord]))
+    :trace-expr-fn
     (fn [_ val coord _]
                   (swap! captured-traces conj [:expr-exec (maybe-serialize val) coord]))
-    :trace-bind-fn-key
+    :trace-bind-fn
     (fn [_ coord sym-name val]
                   (swap! captured-traces conj [:bind sym-name (maybe-serialize val) coord]))})
   (reset! captured-traces [])

@@ -119,8 +119,7 @@ static class Action implements Runnable{
 				}
 			catch(Throwable e)
 				{                    
-				Tracer.handleThreadException(Thread.currentThread(), e);
-				error = e;
+                    error = e;
 				}
 
 			if(error == null)

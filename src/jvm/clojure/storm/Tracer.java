@@ -13,37 +13,23 @@ public class Tracer {
 	
 	private static IFn traceFnCallFn = null;
 	private static IFn traceFnReturnFn = null;
+	private static IFn traceFnUnwindFn = null;
 	private static IFn traceExprFn = null;
 	private static IFn traceBindFn = null;
-	private static IFn handleExceptionFn = null;
-
-	private static Keyword TRACE_FN_CALL_FN_KEY = Keyword.intern(null, "trace-fn-call-fn-key");
+    
+    // TODO: this are depracated, remove when it is safe
+    private static Keyword TRACE_FN_CALL_FN_KEY = Keyword.intern(null, "trace-fn-call-fn-key");
 	private static Keyword TRACE_FN_RETURN_FN_KEY = Keyword.intern(null, "trace-fn-return-fn-key");
 	private static Keyword TRACE_EXPR_FN_KEY = Keyword.intern(null, "trace-expr-fn-key");
 	private static Keyword TRACE_BIND_FN_KEY = Keyword.intern(null, "trace-bind-fn-key");
-	private static Keyword HANDLE_EXCEPTION_FN_KEY = Keyword.intern(null, "handle-exception-fn-key");
-
+    
     private static Keyword TRACE_FN_CALL_FN = Keyword.intern(null, "trace-fn-call-fn");
 	private static Keyword TRACE_FN_RETURN_FN = Keyword.intern(null, "trace-fn-return-fn");
+	private static Keyword TRACE_FN_UNWIND_FN = Keyword.intern(null, "trace-fn-unwind-fn");
 	private static Keyword TRACE_EXPR_FN = Keyword.intern(null, "trace-expr-fn");
 	private static Keyword TRACE_BIND_FN = Keyword.intern(null, "trace-bind-fn");
-	private static Keyword HANDLE_EXCEPTION_FN = Keyword.intern(null, "handle-exception-fn");
-
-	static
-		{				
-		// For all new threads created 
-		Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
-				handleThreadException(t, e);
-		});
-			
-		}
-
-	public static void handleThreadException(Thread thread, Throwable ex) {
-		if (handleExceptionFn != null)
-			handleExceptionFn.invoke(thread, ex);
-	}
-	
-    static public void traceFnCall(IPersistentVector fnArgs, String fnNs, String fnName, int formId) {
+    
+    static public void traceFnCall(Object[] fnArgs, String fnNs, String fnName, int formId) {
 		if (traceFnCallFn != null)
 			traceFnCallFn.invoke(null, fnNs, fnName, fnArgs, formId);
 	}
@@ -59,6 +45,13 @@ public class Tracer {
         if (traceFnReturnFn != null)
 			{            
 			traceFnReturnFn.invoke(null, retVal, coord, formId);
+			}        
+    }
+
+    static public void traceFnUnwind(Object throwable, String coord, int formId) {        
+        if (traceFnUnwindFn != null)
+			{            
+			traceFnUnwindFn.invoke(null, throwable, coord, formId);
 			}        
     }
 
@@ -93,10 +86,7 @@ public class Tracer {
 
         if (callbacks.valAt(TRACE_BIND_FN_KEY) != null)
             traceBindFn = (IFn) callbacks.valAt(TRACE_BIND_FN_KEY);
-
-        if (callbacks.valAt(HANDLE_EXCEPTION_FN_KEY) != null)
-            handleExceptionFn = (IFn) callbacks.valAt(HANDLE_EXCEPTION_FN_KEY);
-
+        
         // New keys
         
         if (callbacks.valAt(TRACE_FN_CALL_FN) != null)
@@ -105,15 +95,14 @@ public class Tracer {
         if (callbacks.valAt(TRACE_FN_RETURN_FN) != null)
             traceFnReturnFn = (IFn) callbacks.valAt(TRACE_FN_RETURN_FN);
 
+        if (callbacks.valAt(TRACE_FN_UNWIND_FN) != null)
+            traceFnUnwindFn = (IFn) callbacks.valAt(TRACE_FN_UNWIND_FN);
+
         if (callbacks.valAt(TRACE_EXPR_FN) != null)
             traceExprFn = (IFn) callbacks.valAt(TRACE_EXPR_FN);
 
         if (callbacks.valAt(TRACE_BIND_FN) != null)
             traceBindFn = (IFn) callbacks.valAt(TRACE_BIND_FN);
-
-        if (callbacks.valAt(HANDLE_EXCEPTION_FN) != null)
-            handleExceptionFn = (IFn) callbacks.valAt(HANDLE_EXCEPTION_FN);
-
         
 	}
 
