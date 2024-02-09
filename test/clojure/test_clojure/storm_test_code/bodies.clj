@@ -48,6 +48,10 @@
       (+ 3 3)
       (+ 4 4))))
 
+(defn constructor []
+  (str (String. "ctor")
+       (^[byte*] String/new (byte-array [64 64]))))
+
 (defn interopter [o]
   ;; TODO
   )

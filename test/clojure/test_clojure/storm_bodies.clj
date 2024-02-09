@@ -9,6 +9,7 @@
   (let [r (b/tried)]
     (is (= 4 r) "function return should be right.")
     (is (= [[:fn-call "clojure.test-clojure.storm-test-code.bodies" "tried" [] 524795972]
+            [:expr-exec "#error[Dummy]" "3,2,1"]
             [:expr-exec 4 "3,3,3"]
             [:fn-return 4 ""]]           
            (u/capture)) "captured traces should match.")))
@@ -19,6 +20,7 @@
             (catch Exception e :throwed))]
     (is (= :throwed r) "function should have throwed")
     (is (= [[:fn-call "clojure.test-clojure.storm-test-code.bodies" "uncached-throw" [] 856953197]
+            [:expr-exec "#error[Dang]" "3,1"]
             [:fn-unwind "Dang" ""]]           
            (u/capture)) "captured traces should match.")))
 
@@ -31,6 +33,7 @@
             [:bind "f" "#object[...]" "3"]
             [:expr-exec "#object[...]" "3,2,0"]
             [:fn-call "clojure.test-clojure.storm-test-code.bodies" "uncached-throw-inner/inner--GEN-ID" [] -1606443558]
+            [:expr-exec "#error[Dang]" "3,1,1,3,1"]
             [:fn-unwind "Dang" "3,1,1"]
             [:fn-unwind "Dang" ""]]           
            (u/capture)) "captured traces should match.")))
@@ -118,6 +121,17 @@
     (is (= [[:fn-call "clojure.test-clojure.storm-test-code.bodies" "doer" [] -378760067]
             [:expr-exec 8 "3,3,2"]
             [:fn-return 8 ""]]           
+           (u/capture)) "captured traces should match.")))
+
+(deftest constructor-test
+  (let [r (b/constructor)]
+    (is (= r "ctor@@") "function return should be right.")
+    (is (= [[:fn-call "clojure.test-clojure.storm-test-code.bodies" "constructor" [] -2137784979]
+            [:expr-exec "ctor" "3,1"]
+            [:expr-exec "#object[...]" "3,2,1"]
+            [:expr-exec "@@" "3,2"]
+            [:expr-exec "ctor@@" "3"]
+            [:fn-return "ctor@@" ""]]    
            (u/capture)) "captured traces should match.")))
 
 ;; (deftest interop-test
