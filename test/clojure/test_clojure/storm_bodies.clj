@@ -134,6 +134,25 @@
             [:fn-return "ctor@@" ""]]    
            (u/capture)) "captured traces should match.")))
 
+(deftest method-value-test
+  (let [r (b/method-value)]
+    (is (= r [4 2]) "function return should be right.")
+    (is (= [[:fn-call "clojure.test-clojure.storm-test-code.bodies" "method-value" [] -277140200]
+            [:bind "parser" "#object[...]" "3"]
+            [:expr-exec "#object[...]" "3,2,1"]
+            [:fn-call "clojure.test-clojure.storm-test-code.bodies" "method-value/invoke--Integer-parseInt--GEN-ID" ["4"] -277140200]
+            [:bind "arg1" "4" ""]
+            [:expr-exec 4 "3,1,1"]
+            [:fn-return 4 "3,1,1"]
+            [:fn-call "clojure.test-clojure.storm-test-code.bodies" "method-value/invoke--Integer-parseInt--GEN-ID" ["2"] -277140200]
+            [:bind "arg1" "2" ""]
+            [:expr-exec 2 "3,1,1"]
+            [:fn-return 2 "3,1,1"]
+            [:expr-exec [4 2] "3,2"]
+            [:expr-exec [4 2] "3"]
+            [:fn-return [4 2] ""]]    
+           (u/capture)) "captured traces should match.")))
+
 ;; (deftest interop-test
 ;;   (let [r (b/interopter #js {:num 2 :f (fn f [x] x)})]
 ;;     (is (= 42 r) "function return should be right.")
