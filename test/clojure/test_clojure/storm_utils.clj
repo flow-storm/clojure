@@ -4,14 +4,18 @@
 (def captured-traces (atom []))
 
 (defn maybe-serialize [v]
-  (if (or (nil? v)    (map? v)    (vector? v)
-          (set? v)    (seq? v)    (symbol? v)
-          (string? v) (number? v) (boolean? v))
+  (cond
+    (or (nil? v)    (map? v)    (vector? v)
+        (set? v)    (seq? v)    (symbol? v)
+        (string? v) (number? v) (boolean? v))
     v
 
-    (-> v
-        pr-str
-        (str/replace #"#object\[.+\]" "#object[...]"))))
+    (instance? Throwable v)
+    (format "#error[%s]" (ex-message v))
+    
+    :else (-> v
+              pr-str
+              (str/replace #"#object\[.+\]" "#object[...]"))))
 
 (defn stable-fn-name [fn-name]
   (str/replace fn-name #"\-\-[0-9]+$" "--GEN-ID"))
