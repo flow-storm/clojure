@@ -2637,14 +2637,16 @@ public static class NewExpr implements Expr{
 	public final IPersistentVector args;
 	public final Constructor ctor;
 	public final Class c;
+    public final IPersistentVector coord;
 	final static Method invokeConstructorMethod =
 			Method.getMethod("Object invokeConstructor(Class,Object[])");
 	final static Method forNameMethod = Method.getMethod("Class classForName(String)");
 
 
-	public NewExpr(Class c, IPersistentVector args, int line, int column) {
+	public NewExpr(Class c, IPersistentVector args, int line, int column, IPersistentVector coord) {
 		this.args = args;
 		this.c = c;
+        this.coord = coord;
 		Constructor[] allctors = c.getConstructors();
 		ArrayList ctors = new ArrayList();
 		ArrayList<Class[]> params = new ArrayList();
@@ -2711,6 +2713,7 @@ public static class NewExpr implements Expr{
 			MethodExpr.emitArgsAsArray(args, objx, gen);
 			gen.invokeStatic(REFLECTOR_TYPE, invokeConstructorMethod);
 			}
+        Emitter.emitExprTrace(gen, objx, coord, OBJECT_TYPE);
 		if(context == C.STATEMENT)
 			gen.pop();
 	}
@@ -2728,6 +2731,7 @@ public static class NewExpr implements Expr{
 			int line = lineDeref();
 			int column = columnDeref();
 			ISeq form = (ISeq) frm;
+            IPersistentVector coord = Utils.coordOf(form);
 			//(new Classname args...)
 			if(form.count() < 2)
 				throw Util.runtimeException("wrong number of arguments, expecting: (new Classname args...)");
@@ -2737,7 +2741,7 @@ public static class NewExpr implements Expr{
 			PersistentVector args = PersistentVector.EMPTY;
 			for(ISeq s = RT.next(RT.next(form)); s != null; s = s.next())
 				args = args.cons(analyze(context == C.EVAL ? context : C.EXPRESSION, s.first()));
-			return new NewExpr(c, args, line, column);
+			return new NewExpr(c, args, line, column, coord);
 		}
 	}
 

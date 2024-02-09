@@ -48,6 +48,9 @@
       (+ 3 3)
       (+ 4 4))))
 
+(defn constructor []
+  (count (String. "ctor")))
+
 (defn interopter [o]
   ;; TODO
   )
