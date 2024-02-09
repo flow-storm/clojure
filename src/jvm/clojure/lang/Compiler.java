@@ -1384,6 +1384,7 @@ static class MethodValueExpr implements Expr {
 		ISeq body = RT.listStar(methodSymbol, params.seq());
 		String thunkName = "invoke__" + c.getSimpleName() + "_" + methodSymbol.name;
 		ISeq form = RT.list(Symbol.intern("fn"), Symbol.intern(thunkName), RT.list(params, body));
+		form = (ISeq) Utils.addCoordMeta(form, Utils.coordOf(methodSymbol));
 		return (FnExpr) analyzeSeq(C.EVAL, form, thunkName);
 	}
 
