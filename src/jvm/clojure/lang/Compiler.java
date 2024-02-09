@@ -4467,8 +4467,7 @@ static class InvokeExpr implements Expr{
 			}
 
 		if(fexpr instanceof QualifiedMethodExpr)
-			return toHostExpr((QualifiedMethodExpr)fexpr, (String) SOURCE.deref(), lineDeref(), columnDeref(), tagOf(form), tailPosition, args);
-
+			return toHostExpr((QualifiedMethodExpr)fexpr, (String) SOURCE.deref(), lineDeref(), columnDeref(), tagOf(form), tailPosition, args, coord);
 //		if(args.count() > MAX_POSITIONAL_ARITY)
 //			throw new IllegalArgumentException(
 //					String.format("No more than %d args supported", MAX_POSITIONAL_ARITY));
@@ -4476,7 +4475,7 @@ static class InvokeExpr implements Expr{
 		return new InvokeExpr((String) SOURCE.deref(), lineDeref(), columnDeref(), coord, tagOf(form), fexpr, args, tailPosition);
 	}
 
-	private static Expr toHostExpr(QualifiedMethodExpr qmexpr, String source, int line, int column, Symbol tag, boolean tailPosition, IPersistentVector args) {
+	private static Expr toHostExpr(QualifiedMethodExpr qmexpr, String source, int line, int column, Symbol tag, boolean tailPosition, IPersistentVector args, IPersistentVector coord) {
 		if(qmexpr.hintedSig != null) {
 			Executable method = QualifiedMethodExpr.resolveHintedMethod(qmexpr.c, qmexpr.methodName, qmexpr.kind, qmexpr.hintedSig);
 			switch(qmexpr.kind) {
@@ -7082,20 +7081,21 @@ public static class LetExpr implements Expr, MaybePrimitiveExpr{
 						if(sym.getNamespace() != null)
 							throw Util.runtimeException("Can't let qualified name: " + sym);
 
-						Object bInitForm = (Object) bindings.nth(i + 1);                         						
+						Object bInitForm = (Object) bindings.nth(i + 1);
+                        IPersistentVector initFormCoord = Utils.coordOf(bInitForm);
 						Expr init = analyze(C.EXPRESSION, bInitForm, sym.name);
 						if(isLoop)
 							{
 							if(recurMismatches != null && RT.booleanCast(recurMismatches.nth(i/2)))
 								{
-								init = new StaticMethodExpr("", 0, 0, null, RT.class, "box", RT.vector(init), false);
+								init = new StaticMethodExpr("", 0, 0, null, RT.class, "box", RT.vector(init), false, initFormCoord);
 								if(RT.booleanCast(RT.WARN_ON_REFLECTION.deref()))
 									RT.errPrintWriter().println("Auto-boxing loop arg: " + sym);
 								}
 							else if(maybePrimitiveType(init) == int.class)
-								init = new StaticMethodExpr("", 0, 0, null, RT.class, "longCast", RT.vector(init), false);
+								init = new StaticMethodExpr("", 0, 0, null, RT.class, "longCast", RT.vector(init), false, initFormCoord);
 							else if(maybePrimitiveType(init) == float.class)
-								init = new StaticMethodExpr("", 0, 0, null, RT.class, "doubleCast", RT.vector(init), false);
+								init = new StaticMethodExpr("", 0, 0, null, RT.class, "doubleCast", RT.vector(init), false, initFormCoord);
 							}
 						//sequential enhancement of env (like Lisp let*)
 						try
@@ -7109,7 +7109,7 @@ public static class LetExpr implements Expr, MaybePrimitiveExpr{
 
 								}
 							LocalBinding lb = registerLocal(sym, tagOf(sym), init,false);
-							lb.coord = Utils.coordOf(bInitForm);
+							lb.coord = initFormCoord;
 							BindingInit bi = new BindingInit(lb, init);
 							bindingInits = bindingInits.cons(bi);
 							if(isLoop)
