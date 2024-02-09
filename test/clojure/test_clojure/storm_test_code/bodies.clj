@@ -52,6 +52,10 @@
   (str (String. "ctor")
        (^[byte*] String/new (byte-array [64 64]))))
 
+(defn method-value []
+  (let [parser ^[String] Integer/parseInt]
+    (mapv parser ["4" "2"])))
+
 (defn interopter [o]
   ;; TODO
   )
