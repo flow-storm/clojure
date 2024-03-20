@@ -5,16 +5,16 @@
   <artifactId>clojure</artifactId>
   <name>clojure</name>
   <packaging>jar</packaging>
-  <version>1.12.0-master-SNAPSHOT</version>
+  <version>1.12.0-SNAPSHOT</version>
   
   <url>http://clojure.org/</url>
   <description>Clojure core environment and runtime library.</description>
 
   <developers>
     <developer>
-      <name>Rich Hickey</name>
-      <email>richhickey@gmail.com</email>
-      <timezone>-5</timezone>
+      <name>Juan Monetta</name>
+      <email>jpmonettas@gmail.com</email>
+      <timezone>-3</timezone>
     </developer>
   </developers>
 
