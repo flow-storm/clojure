@@ -13,7 +13,8 @@
   clojure.main
   (:refer-clojure :exclude [with-bindings])
   (:require [clojure.spec.alpha :as spec]
-            [clojure.storm.repl :as storm-repl])
+            [clojure.storm.repl :as storm-repl]
+            [clojure.storm.explainer :as explainer])
   (:import (java.io StringReader BufferedWriter FileWriter)
            (java.nio.file Files)
            (java.nio.file.attribute FileAttribute)
@@ -284,17 +285,7 @@
       (format "Syntax error reading source at (%s).%n%s%n" loc cause)
 
       :macro-syntax-check
-      (format "Syntax error macroexpanding %sat (%s).%n%s"
-              (if symbol (str symbol " ") "")
-              loc
-              (if spec
-                (with-out-str
-                  (spec/explain-out
-                    (if (= spec/*explain-out* spec/explain-printer)
-                      (update spec :clojure.spec.alpha/problems
-                              (fn [probs] (map #(dissoc % :in) probs)))
-                      spec)))
-                (format "%s%n" cause)))
+      (explainer/explain-macro-syntax triage-data)      
 
       :macroexpansion
       (format "Unexpected error%s macroexpanding %sat (%s).%n%s%n"
@@ -449,7 +440,8 @@ by default when a new command-line REPL is started."} repl-requires
                    (try
                      (print value)
                      (catch Throwable e
-                       (throw (ex-info nil {:clojure.error/phase :print-eval-result} e)))))))
+                       (throw (ex-info nil {:clojure.error/phase :print-eval-result
+                                            :clojure.error/input-form input} e)))))))
             (catch Throwable e              
               (caught e)
               (set! *e e))))]
