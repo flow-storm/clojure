@@ -62,6 +62,16 @@ public class Emitter {
 		if(instrumentationEnableProp != null)
 			setInstrumentationEnable(Boolean.parseBoolean(instrumentationEnableProp)); 
 
+        String autoPrefixesProp = System.getProperty("clojure.storm.instrumentAutoPrefixes");
+        if(autoPrefixesProp != null && Boolean.parseBoolean(autoPrefixesProp))
+            {
+            for (String autoPrefix : Utils.classpathSrcDirstRootNamespaces())
+                {
+                System.out.println("ClojureStorm adding instrumentation auto prefix " + autoPrefix);
+                addInstrumentationOnlyPrefix(autoPrefix);
+                }
+            }
+        
         String onlyPrefixesProp = System.getProperty("clojure.storm.instrumentOnlyPrefixes");
 		if(onlyPrefixesProp != null)
 			{

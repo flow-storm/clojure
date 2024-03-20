@@ -21,9 +21,15 @@ import clojure.lang.PersistentHashSet;
 import clojure.lang.PersistentTreeSet;
 import clojure.lang.RT;
 import clojure.lang.Symbol;
+import clojure.lang.Compiler;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Set;
+import java.util.HashSet;
+import java.io.File;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Utils {
 	
@@ -266,6 +272,56 @@ public class Utils {
 		else return 0;
 	} 
 
+    private static void collectFiles(File dir, List<File> collectedFiles) {
+        File[] files = dir.listFiles();
+        if (files != null) {
+            for (File file : files) {
+                if (file.isDirectory()) {
+                    collectFiles(file, collectedFiles);
+                } else {
+                    collectedFiles.add(file);
+                }
+             }
+         }
+     }
 
+    public static Set<String> getSrcDirRootNamespaces(File dir) {        
+        Set<String> namespaces = new HashSet<String>();
+        List<File> allDirFiles = new ArrayList();
+
+        Pattern pattern = Pattern.compile(".+?" + dir.getName() + "/(.+?)/.*");
+        
+        collectFiles(dir, allDirFiles);
+        for (File f : allDirFiles) {
+            if (f.getName().endsWith(".clj") ||
+                f.getName().endsWith(".cljc")) {
+                
+                Matcher matcher = pattern.matcher(f.getAbsolutePath());
+                    
+                if (matcher.find() && matcher.groupCount() >= 1) {
+                    String rootDir = matcher.group(1);
+                    namespaces.add(Compiler.demunge(rootDir));
+                  }
+                }
+        }
+        return namespaces;
+    }
+    
+    public static Set<String> classpathSrcDirstRootNamespaces() {
+        String classpath = System.getProperty("java.class.path");
+        String cpSeparator = System.getProperty("path.separator");
+
+        String[] cpEntries = classpath.split(cpSeparator);
+        
+        Set<String> rootNamespaces = new HashSet<String>();
+        
+        for (String cpEntry : cpEntries) {
+            File f = new File(cpEntry);
+            if (f.isDirectory()) {                
+                rootNamespaces.addAll(getSrcDirRootNamespaces(f));
+            }
+        }
+        return rootNamespaces;
+    }
 
 	}
