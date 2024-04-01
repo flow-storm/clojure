@@ -317,17 +317,24 @@ public class Emitter {
         emittedCoords.add(strCoord);
 	}	
 
-	public static void emitExprTrace(GeneratorAdapter gen, ObjExpr objx, IPersistentVector coord, Type retType) {
+	public static void emitExprTrace(GeneratorAdapter gen, ObjExpr objx, IPersistentVector coord, Compiler.Expr expr) {
+		Type exprType = Type.getType(Object.class);
+		if (expr.hasJavaClass() && expr.getJavaClass() != null)
+			exprType = Type.getType(expr.getJavaClass());
+		emitExprTrace(gen, objx, coord, exprType);
+	}
+
+	public static void emitExprTrace(GeneratorAdapter gen, ObjExpr objx, IPersistentVector coord, Type exprType) {
 		if (exprInstrumentationEnable && coord != null) {
 
             Integer formId = (Integer) Compiler.FORM_ID.deref();
             if (formId == null) formId = 0;                        
                 
 			if ((objx instanceof FnExpr || objx instanceof NewInstanceExpr) && !skipInstrumentation(objx.name())) {
-                
+
 				// assumes the stack contains the value to be traced
 				// duplicate the value for tracing, so we don't consume it
-				dupAndBox(gen, retType);
+				dupAndBox(gen, exprType);
 								
 				emitCoord(gen, coord);
 
