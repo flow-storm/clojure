@@ -84,7 +84,7 @@
             [:expr-exec 3 "3"]
             [:fn-return 3 ""]]
            (u/capture)) "captured traces should match.")))
-   
+
 (deftest let-test
   (let [r (b/letter)]
     (is (= 15 r) "function return should be right.")
@@ -97,7 +97,8 @@
             [:expr-exec 10 "3,1,5,1,1,2"]
             [:expr-exec 15 "3,1,5,1,1"]
             [:bind "z" 15 "3,1,5"]
-            [:expr-exec 15 "3,1,5,2"]
+            [:expr-exec 15 "3,1,5,2"] 
+            [:expr-exec 15 "3,1,5"]
             [:bind "c" 15 "3"]
             [:expr-exec 15 "3,2"]
             [:expr-exec 15 "3"]
@@ -151,6 +152,30 @@
             [:expr-exec [4 2] "3,2"]
             [:expr-exec [4 2] "3"]
             [:fn-return [4 2] ""]]    
+           (u/capture)) "captured traces should match.")))
+
+(deftest hinted-and-static-test
+  (let [r (b/hinted-and-static 42)]
+    (is (= r 174) "function return should be right.")
+    (is (= [[:fn-call "clojure.test-clojure.storm-test-code.bodies" "hinted-and-static" [42] 1633944069]
+            [:bind "n" 42 ""]
+            [:expr-exec "#object[...]" "3,1,1"]
+            [:bind "arr" "#object[...]" "3"]
+            [:expr-exec "#object[...]" "3,1,3,1"]
+            [:expr-exec 3 "3,1,3"]
+            [:bind "e" 3 "3"]
+            [:expr-exec 3 "3,1,5,1"]
+            [:expr-exec 3 "3,1,5"]
+            [:bind "l" 3 "3"]
+            [:expr-exec 42 "3,1,7,1"]
+            [:expr-exec 168 "3,1,7"]
+            [:bind "b" 168 "3"]
+            [:expr-exec 3 "3,2,1"]
+            [:expr-exec 3 "3,2,2"]
+            [:expr-exec 168 "3,2,3"]
+            [:expr-exec 174 "3,2"]
+            [:expr-exec 174 "3"]
+            [:fn-return 174 ""]]    
            (u/capture)) "captured traces should match.")))
 
 ;; (deftest interop-test

@@ -56,6 +56,13 @@
   (let [parser ^[String] Integer/parseInt]
     (mapv parser ["4" "2"])))
 
+(defn hinted-and-static ^long [^long n]
+  (let [arr (byte-array [1 2 3 4])
+        e (aget arr 2)
+        l (long e)
+        b (bit-shift-left n 2)]
+    (+ e l b)))
+
 (defn interopter [o]
   ;; TODO
   )
