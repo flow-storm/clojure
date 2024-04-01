@@ -361,7 +361,7 @@ static final public Var CLEAR_SITES = Var.create(null).setDynamic();
 private class Recur {};
 static final public Class RECUR_CLASS = Recur.class;
     
-interface Expr{
+public interface Expr{
 	Object eval() ;
 
 	void emit(C context, ObjExpr objx, GeneratorAdapter gen);
@@ -1848,6 +1848,7 @@ static class StaticMethodExpr extends MethodExpr{
 				method.emitClearLocals(gen);
 				}
 			Object ops = RT.get(Intrinsics.ops, method.toString());
+			Type retType = Type.getReturnType(method);
 			if(ops != null)
 				{
 				if(ops instanceof Object[])
@@ -1861,11 +1862,10 @@ static class StaticMethodExpr extends MethodExpr{
 			else
 				{
 				Type type = Type.getType(c);
-				Type retType = Type.getReturnType(method);
 				Method m = new Method(methodName, retType, Type.getArgumentTypes(method));
 				gen.visitMethodInsn(INVOKESTATIC, type.getInternalName(), methodName, m.getDescriptor(), c.isInterface());
-				Emitter.emitExprTrace(gen, objx, coord, retType);
 				}
+			Emitter.emitExprTrace(gen, objx, coord, retType);
 			}
 		else
 			throw new UnsupportedOperationException("Unboxed emit of unknown member");
@@ -2840,26 +2840,28 @@ public static class IfExpr implements Expr, MaybePrimitiveExpr{
 			gen.getStatic(BOOLEAN_OBJECT_TYPE, "FALSE", BOOLEAN_OBJECT_TYPE);
 			gen.visitJumpInsn(IF_ACMPEQ, falseLabel);
 			}
-		if(emitUnboxed)
-			((MaybePrimitiveExpr)thenExpr).emitUnboxed(context, objx, gen);
-		else {
-				thenExpr.emit(context, objx, gen);				
-				if(context != C.STATEMENT)
-					Emitter.emitExprTrace(gen, objx, coord, OBJECT_TYPE);
+		if(emitUnboxed) {
+			((MaybePrimitiveExpr) thenExpr).emitUnboxed(context, objx, gen);
+			if (context != C.STATEMENT) Emitter.emitExprTrace(gen, objx, coord, thenExpr);
+		} else {
+			thenExpr.emit(context, objx, gen);
+			if(context != C.STATEMENT) Emitter.emitExprTrace(gen, objx, coord, OBJECT_TYPE);
 		}
+
 		
 		gen.goTo(endLabel);
 		gen.mark(nullLabel);
 		gen.pop();		       
 		
 		gen.mark(falseLabel);
-		if(emitUnboxed)
-			((MaybePrimitiveExpr)elseExpr).emitUnboxed(context, objx, gen);
-		else {
+		if(emitUnboxed) {
+			((MaybePrimitiveExpr) elseExpr).emitUnboxed(context, objx, gen);
+			if(context != C.STATEMENT) Emitter.emitExprTrace(gen, objx, coord, elseExpr);
+		} else {
 			elseExpr.emit(context, objx, gen);
-			if(context != C.STATEMENT)
-				Emitter.emitExprTrace(gen, objx, coord, OBJECT_TYPE);
+			if(context != C.STATEMENT) Emitter.emitExprTrace(gen, objx, coord, OBJECT_TYPE);
 		}
+
             
 		gen.mark(endLabel);        		
         
@@ -3515,10 +3517,12 @@ static class KeywordInvokeExpr implements Expr{
 public static class InstanceOfExpr implements Expr, MaybePrimitiveExpr{
 	Expr expr;
 	Class c;
+    IPersistentVector coord;
 
-	public InstanceOfExpr(Class c, Expr expr){
+	public InstanceOfExpr(Class c, Expr expr, IPersistentVector coord){
 		this.expr = expr;
 		this.c = c;
+        this.coord = coord;
 	}
 
 	public Object eval() {
@@ -3533,12 +3537,13 @@ public static class InstanceOfExpr implements Expr, MaybePrimitiveExpr{
 
 	public void emitUnboxed(C context, ObjExpr objx, GeneratorAdapter gen){
 		expr.emit(C.EXPRESSION, objx, gen);
-		gen.instanceOf(getType(c));
+		gen.instanceOf(getType(c));        
 	}
 
 	public void emit(C context, ObjExpr objx, GeneratorAdapter gen){
 		emitUnboxed(context,objx,gen);
-		HostExpr.emitBoxReturn(objx,gen,Boolean.TYPE);
+		HostExpr.emitBoxReturn(objx,gen,Boolean.TYPE); 
+        Emitter.emitExprTrace(gen, objx, coord, OBJECT_TYPE);
 		if(context == C.STATEMENT)
 			gen.pop();
 	}
@@ -3940,7 +3945,7 @@ static class InvokeExpr implements Expr{
 				Object val = ((ConstantExpr) sexpr).val();
 				if(val instanceof Class)
 					{
-					return new InstanceOfExpr((Class) val, analyze(context, RT.third(form)));
+					return new InstanceOfExpr((Class) val, analyze(context, RT.third(form)), coord);
 					}
 				}
 			}
@@ -6724,12 +6729,14 @@ public static class LetExpr implements Expr, MaybePrimitiveExpr{
 				{
 				Var.pushThreadBindings(RT.map(LOOP_LABEL, loopLabel));
 				if(emitUnboxed)
-					((MaybePrimitiveExpr)body).emitUnboxed(context, objx, gen);
+                    {
+                    ((MaybePrimitiveExpr)body).emitUnboxed(context, objx, gen);
+                    if (context == C.EXPRESSION || context == C.RETURN) Emitter.emitExprTrace(gen, objx, coord, body);
+                    }                    
 				else
                     {
                     body.emit(context, objx, gen);
-                    if (context == C.EXPRESSION || context == C.RETURN)
-                        Emitter.emitExprTrace(gen, objx, coord, OBJECT_TYPE);
+                    if (context == C.EXPRESSION || context == C.RETURN) Emitter.emitExprTrace(gen, objx, coord, OBJECT_TYPE);
                     }                    
 				}
 			finally
@@ -6740,12 +6747,15 @@ public static class LetExpr implements Expr, MaybePrimitiveExpr{
 		else
 			{
 			if(emitUnboxed)
+                {
                 ((MaybePrimitiveExpr)body).emitUnboxed(context, objx, gen);
+                if (context == C.EXPRESSION || context == C.RETURN) Emitter.emitExprTrace(gen, objx, coord, body);
+                }
+                
 			else
                 {
                 body.emit(context, objx, gen);
-                if (context == C.EXPRESSION || context == C.RETURN)
-                    Emitter.emitExprTrace(gen, objx, coord, OBJECT_TYPE);
+                if (context == C.EXPRESSION || context == C.RETURN) Emitter.emitExprTrace(gen, objx, coord, OBJECT_TYPE);
                 }
                 
 			}

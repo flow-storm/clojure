@@ -115,6 +115,16 @@ You can also disable/enable specific types of instrumentation by using :
 * [FlowStorm debugger](http://www.flow-storm.org)
 * [Clofidence](https://github.com/flow-storm/clofidence)
 
+## Building 
+
+- Modify the version in pom.xml
+- make install
+
+## Running the tests
+
+You can run all the tests with `mvn test`. To specifically run storm tests see the comment
+on build.xml `test` target.
+
 ## Clojure 
 
  *   Clojure
