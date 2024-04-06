@@ -157,7 +157,19 @@ public class Emitter {
 	public static void removeInstrumentationOnlyPrefix(String prefix) {
 		instrumentationOnlyPrefixes.remove(Compiler.munge(prefix));        
 	}
-	
+
+    public static void setInstrumentationSkipRegex(String regex) {
+        instrumentationSkipRegex = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
+    }
+
+    public static void removeInstrumentationSkipRegex() {
+        instrumentationSkipRegex = null;        
+    }
+
+    public static Pattern getInstrumentationSkipRegex() {
+        return instrumentationSkipRegex;
+    }
+    
 	public static boolean skipInstrumentation(String fqFnName) {        
 
 		boolean instrument = false;
