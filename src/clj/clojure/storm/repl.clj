@@ -15,10 +15,12 @@
   (println "ClojureStorm Help\n")
   (println "ClojureStorm settings: \n")
   (println (format "  Instrumentation enable : %s" (Emitter/getInstrumentationEnable)))
-  (when-let [pref (Emitter/makePrefixesString (Emitter/getInstrumentationSkipPrefixes))] 
-    (println (format "  Instrument skip prefixes : %s" pref)))
   (when-let [pref (Emitter/makePrefixesString (Emitter/getInstrumentationOnlyPrefixes))] 
     (println (format "  Instrument only prefixes : %s" pref)))
+  (when-let [pref (Emitter/makePrefixesString (Emitter/getInstrumentationSkipPrefixes))] 
+    (println (format "  Instrument skip prefixes : %s" pref)))  
+  (when-let [regex (Emitter/getInstrumentationSkipRegex)] 
+    (println (format "  Instrument skip regex : %s" (.pattern regex))))
   (println)
   (println "ClojureStorm Commands: \n")  
   (println "  :inst       - Enable instrumentation.")
