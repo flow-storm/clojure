@@ -148,7 +148,7 @@
             [:fn-call "clojure.test-clojure.storm-test-code.bodies" "method-value/invoke--Integer-parseInt--GEN-ID" ["2"] -277140200]
             [:bind "arg1" "2" ""]
             [:expr-exec 2 "3,1,1"]
-            [:fn-return 2 "3,1,1"]
+            [:fn-return 2 "3,1,1"] ;; WRONG @nocheckin
             [:expr-exec [4 2] "3,2"]
             [:expr-exec [4 2] "3"]
             [:fn-return [4 2] ""]]    
@@ -177,6 +177,29 @@
             [:expr-exec 174 "3"]
             [:fn-return 174 ""]]    
            (u/capture)) "captured traces should match.")))
+
+(deftest instance-methods-test
+  (let [r (b/instance-methods)]
+    (is (= r ["A" "B" "C"]) "function return should be right")
+    (is (= [[:fn-call "clojure.test-clojure.storm-test-code.bodies" "instance-methods" [] -385971727]
+            [:bind "strs" ["a" "b" "c"] "3"]
+            [:expr-exec ["a" "b" "c"] "3,2,2"]
+            [:fn-call "clojure.test-clojure.storm-test-code.bodies" "instance-methods/invoke--String--DOT-toUpperCase--GEN-ID" ["a"] -385971727]
+            [:bind "this" "a" ""]
+            [:expr-exec "A" "3,2,1"]
+            [:fn-return "A" "3,2,1"]
+            [:fn-call "clojure.test-clojure.storm-test-code.bodies" "instance-methods/invoke--String--DOT-toUpperCase--GEN-ID" ["b"] -385971727]
+            [:bind "this" "b" ""]
+            [:expr-exec "B" "3,2,1"]
+            [:fn-return "B" "3,2,1"]
+            [:fn-call "clojure.test-clojure.storm-test-code.bodies" "instance-methods/invoke--String--DOT-toUpperCase--GEN-ID" ["c"] -385971727]
+            [:bind "this" "c" ""]
+            [:expr-exec "C" "3,2,1"]
+            [:fn-return "C" "3,2,1"]
+            [:expr-exec ["A" "B" "C"] "3,2"]
+            [:expr-exec ["A" "B" "C"] "3"]
+            [:fn-return ["A" "B" "C"] ""]]
+           (u/capture)) "captured traces should match")))
 
 ;; (deftest interop-test
 ;;   (let [r (b/interopter #js {:num 2 :f (fn f [x] x)})]

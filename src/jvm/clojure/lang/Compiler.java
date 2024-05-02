@@ -1200,15 +1200,18 @@ static class QualifiedMethodExpr implements Expr {
 	private final MethodKind kind;
 	private final Class tagClass;
 
+	public final IPersistentVector coord;
+
 	private enum MethodKind {
 		CTOR, INSTANCE, STATIC
 	}
 
-	public QualifiedMethodExpr(Class methodClass, Symbol sym){
+	public QualifiedMethodExpr(Class methodClass, Symbol sym, IPersistentVector coord){
 		c = methodClass;
 		methodSymbol = sym;
 		tagClass = tagOf(sym) != null ? HostExpr.tagToClass(tagOf(sym)) : AFn.class;
 		hintedSig = tagsToClasses(paramTagsOf(sym));
+		this.coord = coord;
 		if(sym.name.startsWith(".")) {
 			kind = MethodKind.INSTANCE;
 			methodName = sym.name.substring(1);
@@ -1268,6 +1271,7 @@ static class QualifiedMethodExpr implements Expr {
 		}
 
 		ISeq thunkForm = RT.listStar(Symbol.intern("fn"), Symbol.intern(thunkName), RT.seq(form));
+		thunkForm = (ISeq)Utils.addCoordMeta(thunkForm, qmexpr.coord);
 		return (FnExpr) analyzeSeq(context, thunkForm, thunkName);
 	}
 
@@ -4490,7 +4494,7 @@ static class InvokeExpr implements Expr{
 			Executable method = QualifiedMethodExpr.resolveHintedMethod(qmexpr.c, qmexpr.methodName, qmexpr.kind, qmexpr.hintedSig);
 			switch(qmexpr.kind) {
 				case CTOR:
-					return new NewExpr(qmexpr.c, (Constructor) method, args, line, column);
+					return new NewExpr(qmexpr.c, (Constructor) method, args, line, column, coord);
 				case INSTANCE:
 					return new InstanceMethodExpr(source, line, column, tag, (Expr) RT.first(args),
 							qmexpr.c, munge(qmexpr.methodName), (java.lang.reflect.Method) method,
@@ -4504,7 +4508,7 @@ static class InvokeExpr implements Expr{
 		else {
 			switch(qmexpr.kind) {
 				case CTOR:
-					return new NewExpr(qmexpr.c, args, line, column);
+					return new NewExpr(qmexpr.c, args, line, column, coord);
 				case INSTANCE:
 					return new InstanceMethodExpr(source, line, column, tag, (Expr) RT.first(args), qmexpr.c,
                         munge(qmexpr.methodName), PersistentVector.create(RT.next(args)), tailPosition, coord);
@@ -8132,7 +8136,7 @@ private static Expr analyzeSymbol(Symbol sym) {
 				if(Reflector.getField(c, sym.name, true) != null)
 					return new StaticFieldExpr(lineDeref(), columnDeref(), c, sym.name, tag);
 				else
-					return new QualifiedMethodExpr(c, sym);
+					return new QualifiedMethodExpr(c, sym, Utils.coordOf(sym));
 				}
 
 			}

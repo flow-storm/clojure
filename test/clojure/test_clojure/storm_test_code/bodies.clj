@@ -50,7 +50,7 @@
 
 (defn constructor []
   (str (String. "ctor")
-       (^[byte*] String/new (byte-array [64 64]))))
+       (^[byte/1] String/new (byte-array [64 64]))))
 
 (defn method-value []
   (let [parser ^[String] Integer/parseInt]
@@ -62,6 +62,10 @@
         l (long e)
         b (bit-shift-left n 2)]
     (+ e l b)))
+
+(defn instance-methods []
+  (let [strs ["a" "b" "c"]]
+    (mapv String/.toUpperCase strs)))
 
 (defn interopter [o]
   ;; TODO
