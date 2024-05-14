@@ -6,6 +6,14 @@
     
 ### Changes 
     
+### Bugs fixed 
+
+## 1.12.0-alpha11_1 (14-05-2024)
+
+### New Features
+    
+### Changes 
+    
 ### Bugs fixed
 
     - Don't tag ()
