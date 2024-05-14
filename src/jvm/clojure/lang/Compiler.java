@@ -298,8 +298,11 @@ static public Object getCompilerOption(Keyword k){
     static Object elideMeta(Object m){
         Collection<Object> elides = (Collection<Object>) getCompilerOption(elideMetaKey);
 
-		// Always elide Storm coordinates meta
+		// Always elide Storm coordinates meta, and if storm coordinates where the only thing
+        // added leave meta as null. If not we are going to endup with an empty map as meta
+        // that wasn't there in the first place
 		m = RT.dissoc(m, LispReader.COORD_KEY);
+        if (RT.count(m) == 0) m = null;
 		
         if(elides != null)
             {

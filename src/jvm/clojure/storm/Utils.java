@@ -34,37 +34,31 @@ import java.util.regex.Pattern;
 public class Utils {
 	
 	public static Object mergeMeta(Object x, IPersistentMap m) {
-		if (x instanceof clojure.lang.IObj) {
+		if (x instanceof clojure.lang.IObj && RT.count(m) > 0) {
+            // if x supports meta and there is meta to merge
 			IObj o = (IObj) x;
-			if (m != null || RT.meta(o) != null)
-				{ // if there is meta in any of the args
-				IPersistentMap retMeta = PersistentHashMap.EMPTY;
-				IPersistentMap oMeta = RT.meta(o);
 
-				if (oMeta != null)
-					{
-					for (Object meo : oMeta)
-					{
-						MapEntry me = (MapEntry) meo;
-						retMeta = retMeta.assoc(me.getKey(), me.getValue());
-						}
-					}
-					// m meta overrides the input Object meta when both have
-					if (m != null)
-					{
-						for (Object meo : m)
-						{
-							MapEntry me = (MapEntry) meo;
-							retMeta = retMeta.assoc(me.getKey(), me.getValue());
-						}
-					}
-				return o.withMeta(retMeta);
-				} else {
-				return x;
-				}
-			}
-		return x;
-		}
+            IPersistentMap retMeta = PersistentHashMap.EMPTY;
+            IPersistentMap oMeta = RT.meta(o);
+
+            if (oMeta != null) {
+                for (Object meo : oMeta) {
+                    MapEntry me = (MapEntry) meo;
+                    retMeta = retMeta.assoc(me.getKey(), me.getValue());
+                }
+            }
+
+            // m meta overrides the input Object meta when both have
+            for (Object meo : m) {
+                MapEntry me = (MapEntry) meo;
+                retMeta = retMeta.assoc(me.getKey(), me.getValue());
+            }
+
+            return o.withMeta(retMeta);
+        } else {
+            return x;
+        }
+    }
 
 	public static Symbol maybeGetTraceSymbol(Symbol sym, ISeq form){
         // If the form is the expansion of a defmethod we use the symbol of
@@ -219,7 +213,9 @@ public class Utils {
             PersistentVector.EMPTY,
             new AFn() {            
             public Object invoke(Object coord, Object frm) {
-                if ((frm instanceof clojure.lang.ISeq) || (frm instanceof clojure.lang.Symbol))
+                // Tag seqs and symbols but don't tag empty lists 
+                if (((frm instanceof clojure.lang.ISeq) && RT.count(frm) > 0) ||
+                    (frm instanceof clojure.lang.Symbol))
                     return addCoordMeta(frm, (IPersistentVector)coord);
                 else
                     return frm;
