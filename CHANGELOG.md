@@ -1,13 +1,17 @@
 # Changelog
 
 ## master (unreleased)
-	
+
 ### New Features
     
 ### Changes 
     
 ### Bugs fixed
 
+    - Don't tag ()
+    - After eliding meta (reader and coord) leave nil instead of {} when that was the only meta
+    - Refactor Utils.mergeMeta
+    
 ## 1.12.0-alpha11 (unreleased)
 	
 ### New Features
