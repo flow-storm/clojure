@@ -8,6 +8,16 @@
     
 ### Bugs fixed 
 
+## 1.12.0-alpha12 (27-05-2024)
+
+### New Features
+    
+### Changes 
+
+    - Tracking official 1.12.0-alpha12
+    
+### Bugs fixed 
+
 ## 1.12.0-alpha11_1 (14-05-2024)
 
 ### New Features
