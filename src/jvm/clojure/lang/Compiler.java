@@ -8657,7 +8657,9 @@ public static Object compile(Reader rdr, String sourcePath, String sourceName) t
 			r = LispReader.read(pushbackReader, false, EOF, false, readerOpts))
 			{
 			forms.add(r);
-            r = Utils.tagStormCoord(r);
+            
+            if(!Emitter.skipInstrumentation(munge(currentNS().toString())))
+                r = Utils.tagStormCoord(r);
             
             Integer formId = 0; 
 			if (r != null)

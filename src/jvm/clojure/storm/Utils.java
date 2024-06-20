@@ -15,6 +15,7 @@ import clojure.lang.MapEntry;
 import clojure.lang.Keyword;
 import clojure.lang.Namespace;
 import clojure.lang.PersistentHashMap;
+import clojure.lang.PersistentTreeMap;
 import clojure.lang.PersistentList;
 import clojure.lang.PersistentVector;
 import clojure.lang.PersistentHashSet;
@@ -195,7 +196,7 @@ public class Utils {
             };
 
         Object result = null;
-        if ((form instanceof IPersistentMap) && !(form instanceof IRecord)) {
+        if ((form instanceof IPersistentMap) && !(form instanceof IRecord) && !(form instanceof PersistentTreeMap)) {
             result = walkMap.invoke(form);
         } else if (form instanceof IPersistentSet && !(form instanceof PersistentTreeSet)) {
             result = walkSet.invoke(form);  

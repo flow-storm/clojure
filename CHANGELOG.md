@@ -5,8 +5,12 @@
 ### New Features
     
 ### Changes 
+
+    - Don't waste time tagging forms for uninstrumented namespaces
     
 ### Bugs fixed 
+
+    - Fix form walking for PersistentTreeMap (sorted-map)
 
 ## 1.12.0-alpha12 (27-05-2024)
 
