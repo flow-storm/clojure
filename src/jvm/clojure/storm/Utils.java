@@ -11,7 +11,7 @@ import clojure.lang.ISeq;
 import clojure.lang.IFn;
 import clojure.lang.AFn;
 import clojure.lang.LispReader;
-import clojure.lang.MapEntry;
+import clojure.lang.IMapEntry;
 import clojure.lang.Keyword;
 import clojure.lang.Namespace;
 import clojure.lang.PersistentHashMap;
@@ -44,15 +44,15 @@ public class Utils {
 
             if (oMeta != null) {
                 for (Object meo : oMeta) {
-                    MapEntry me = (MapEntry) meo;
-                    retMeta = retMeta.assoc(me.getKey(), me.getValue());
+                    IMapEntry me = (IMapEntry) meo;
+                    retMeta = retMeta.assoc(me.key(), me.val());
                 }
             }
 
             // m meta overrides the input Object meta when both have
             for (Object meo : m) {
-                MapEntry me = (MapEntry) meo;
-                retMeta = retMeta.assoc(me.getKey(), me.getValue());
+                IMapEntry me = (IMapEntry) meo;
+                retMeta = retMeta.assoc(me.key(), me.val());
             }
 
             return o.withMeta(retMeta);
@@ -184,9 +184,9 @@ public class Utils {
                 List<Object> kvs = new ArrayList<Object>();
                 Iterator<Object> iter = RT.iter(m);
                 while(iter.hasNext()) {
-                    MapEntry e = (MapEntry) iter.next();
-                    Object kfrm = e.getKey();
-                    Object vfrm = e.getValue();
+                    IMapEntry e = (IMapEntry) iter.next();
+                    Object kfrm = e.key();
+                    Object vfrm = e.val();
                     kvs.add(walkCodeForm((IPersistentVector) RT.conj(coord, objCoord("K", kfrm)), f, kfrm));
                     kvs.add(walkCodeForm((IPersistentVector) RT.conj(coord, objCoord("V", kfrm)), f, vfrm));
                 }
@@ -196,11 +196,11 @@ public class Utils {
             };
 
         Object result = null;
-        if ((form instanceof IPersistentMap) && !(form instanceof IRecord) && !(form instanceof PersistentTreeMap)) {
+        if ((form instanceof IPersistentMap) && !(form instanceof IRecord)) {
             result = walkMap.invoke(form);
         } else if (form instanceof IPersistentSet && !(form instanceof PersistentTreeSet)) {
             result = walkSet.invoke(form);  
-        } else if (form instanceof IPersistentCollection && !(form instanceof IRecord) && !(form instanceof MapEntry)) {
+        } else if (form instanceof IPersistentCollection && !(form instanceof IRecord) && !(form instanceof IMapEntry)) {
             result = walkCollection.invoke(form);
         } else {
                 result = form;
