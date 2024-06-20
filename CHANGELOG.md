@@ -6,6 +6,7 @@
     
 ### Changes 
 
+    - Tracking official 1.12.0-beta1
     - Don't waste time tagging forms for uninstrumented namespaces
     
 ### Bugs fixed 
