@@ -7416,10 +7416,25 @@ public static Object eval(Object form) {
 		}
     
 }
+private static void maybeRegisterForm(Integer formId, String file, Object line, Object form, HashSet<String> formCoords) {
+	if (formCoords != null)
+	{
+		if (form instanceof IObj)
+			form = Utils.mergeMeta(form, RT.map(STORM_COORDS_EMITTED_COORDS_KEY,
+					formCoords));
 
+		// Register the form
+		Tracer.registerFormObject(formId,
+				currentNS().toString(),
+				(String)file,
+				clojure.storm.Utils.toInt(line),
+				form);
+
+	}
+}
 public static Object eval(Object form, boolean freshLoader) {
 	boolean createdLoader = false;
-	
+
 	if(true)//!LOADER.isBound())
 		{
 		Var.pushThreadBindings(RT.map(LOADER, RT.makeClassLoader()));
@@ -7440,21 +7455,24 @@ public static Object eval(Object form, boolean freshLoader) {
         Object origForm = form;
         
         // [STORM] For each evaluation, before macroexpanding :                
-        if (form != null && !Emitter.skipInstrumentation(munge(currentNS().toString())))
-            {
-            // Calculate the form id
-            formId = form.hashCode();
-            formCoords = new HashSet();
-                        
-            // Tag the coords
-            form = Utils.tagStormCoord(form);
+        if (form != null &&
+				!Emitter.skipInstrumentation(munge(currentNS().toString()))) {
+			if (!Utils.isAnnoyingLeinNreplForm(origForm)) {
+				// Calculate the form id
+				formId = form.hashCode();
+				formCoords = new HashSet();
 
-            // Bind FORM_ID so everything down the road knows what form
-            // they belong to
-            bindings = (IPersistentMap)RT.assoc(bindings, FORM_ID, formId);
-            bindings = (IPersistentMap)RT.assoc(bindings, FORM_COORDS, formCoords);
-            }
-        
+				// Tag the coords
+				form = Utils.tagStormCoord(form);
+
+				// Bind FORM_ID so everything down the road knows what form
+				// they belong to
+				bindings = (IPersistentMap) RT.assoc(bindings, FORM_ID, formId);
+				bindings = (IPersistentMap) RT.assoc(bindings, FORM_COORDS, formCoords);
+			} else {
+				System.out.println("ClojureStorm: skipping lein initialization form instrumentation being evaluated in " + currentNS().toString());
+			}
+		}
 		if(meta != null) {
 			Object eval_file = meta.valAt(RT.EVAL_FILE_KEY);
 			if(eval_file != null) {
@@ -7484,12 +7502,15 @@ public static Object eval(Object form, boolean freshLoader) {
 				ObjExpr fexpr = (ObjExpr) analyze(C.EXPRESSION, RT.list(FN, PersistentVector.EMPTY, form),
 					                                "eval" + RT.nextID());
 				IFn fn = (IFn) fexpr.eval();
+				maybeRegisterForm(formId,(String)file, line,origForm, formCoords);
 				return fn.invoke();
 				}
 			else
 				{
 				Expr expr = analyze(C.EVAL, form);
-				return expr.eval();
+				Object evalResult = expr.eval();
+				maybeRegisterForm(formId,(String)file, line,origForm, formCoords);
+				return evalResult;
 				}
 			} catch (Exception e)
             {
@@ -7498,20 +7519,6 @@ public static Object eval(Object form, boolean freshLoader) {
             }
 		finally
 			{
-            if (formCoords != null)
-                {
-                if (origForm instanceof IObj)
-                    origForm = Utils.mergeMeta(origForm, RT.map(STORM_COORDS_EMITTED_COORDS_KEY,
-                            formCoords)); 
-                
-                // Register the form
-                Tracer.registerFormObject(formId,
-                    currentNS().toString(),
-                    (String)file,
-                    clojure.storm.Utils.toInt(line),
-                    origForm);
-                }
-            
 			Var.popThreadBindings();
 			}
 		}
@@ -8147,16 +8154,6 @@ public static Object compile(Reader rdr, String sourcePath, String sourceName) t
 		for(Object r = LispReader.read(pushbackReader, false, EOF, false, readerOpts); r != EOF;
 			r = LispReader.read(pushbackReader, false, EOF, false, readerOpts))
 			{
-			forms.add(r);
-            
-            if(!Emitter.skipInstrumentation(munge(currentNS().toString())))
-                r = Utils.tagStormCoord(r);
-            
-            Integer formId = 0; 
-			if (r != null)
-				formId = r.hashCode();
-					
-			Var.pushThreadBindings(RT.mapUniqueKeys(FORM_ID, formId));
 				
 			LINE_AFTER.set(pushbackReader.getLineNumber());
 			COLUMN_AFTER.set(pushbackReader.getColumnNumber());
@@ -8164,11 +8161,7 @@ public static Object compile(Reader rdr, String sourcePath, String sourceName) t
 			LINE_BEFORE.set(pushbackReader.getLineNumber());
 			COLUMN_BEFORE.set(pushbackReader.getColumnNumber());
 
-			Var.popThreadBindings();
 			}
-
-		// generate forms registration
-		Emitter.emitFormsRegistration(gen, forms, sourcePath);
 
 		//end of load
 		gen.returnValue();
