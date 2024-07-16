@@ -4,6 +4,17 @@
 
 ### New Features
     
+### Changes
+
+    - Don't instrument in .class compilation path 
+    - Lein init form instrumentation ignore
+    
+### Bugs fixed 
+
+## 1.12.0-beta1 (20-06-2024)
+
+### New Features
+    
 ### Changes 
 
     - Tracking official 1.12.0-beta1

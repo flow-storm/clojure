@@ -321,4 +321,19 @@ public class Utils {
         return rootNamespaces;
     }
 
+    public static boolean isAnnoyingLeinNreplForm(Object form) {
+        if(form instanceof ISeq) {
+            ISeq frm = (ISeq) form;
+            if (RT.first(frm) instanceof Symbol) {
+                Symbol firstSymb = ((Symbol) RT.first(frm));
+                if ((firstSymb.toString().equals("clojure.core/let") ||
+                        firstSymb.toString().equals("do")) &&
+                        form.toString().contains("nrepl.server/start-server")) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
 	}

@@ -223,16 +223,18 @@ public class Emitter {
     */
 	public static Label emitFnPrologue(GeneratorAdapter gen, ObjExpr objx, String mungedFnName, Type[] argtypes, IPersistentVector arglocals) {
 
-		boolean skipFn = skipInstrumentation(mungedFnName);
-        
-		if (fnCallInstrumentationEnable && !skipFn) {
+        Integer formId = (Integer) Compiler.FORM_ID.deref();
+         
+        if (formId != null &&
+            fnCallInstrumentationEnable &&
+            !skipInstrumentation(mungedFnName)) {
 
             
             Label startTry = gen.newLabel();
             gen.mark(startTry);
             
-            Integer formId = (Integer) Compiler.FORM_ID.deref();
-            if (formId == null) formId = 0;
+            
+            
 			Symbol name = Symbol.create(Compiler.demunge(mungedFnName));
 			String fnName = name.getName();
 			String fnNs = name.getNamespace();
@@ -261,16 +263,17 @@ public class Emitter {
     */
 	public static void emitFnEpilogue(GeneratorAdapter gen, String mungedFnName, IPersistentVector coord, Type retType, Label tryStartLabel) {
         
-        boolean skipFn = skipInstrumentation(mungedFnName);
-        
-		if (fnReturnInstrumentationEnable && !skipFn) {
+        Integer formId = (Integer) Compiler.FORM_ID.deref();
+
+		if (formId != null &&
+            fnReturnInstrumentationEnable &&
+            !skipInstrumentation(mungedFnName)) {
 
             Label tryEndLabel = gen.newLabel();
             Label retLabel = gen.newLabel();
             Label catchHandlerLabel = gen.newLabel();
 
-            Integer formId = (Integer) Compiler.FORM_ID.deref();
-            if (formId == null) formId = 0;
+            
             
             // trace the return
             // push a copy of the return value
@@ -337,11 +340,12 @@ public class Emitter {
 	}
 
 	public static void emitExprTrace(GeneratorAdapter gen, ObjExpr objx, IPersistentVector coord, Type exprType) {
-		if (exprInstrumentationEnable && coord != null) {
+        Integer formId = (Integer) Compiler.FORM_ID.deref();
+        
+		if (exprInstrumentationEnable && coord != null && formId != null) {
 
-            Integer formId = (Integer) Compiler.FORM_ID.deref();
-            if (formId == null) formId = 0;                        
-                
+            
+            
 			if ((objx instanceof FnExpr || objx instanceof NewInstanceExpr) && !skipInstrumentation(objx.name())) {
 
 				// assumes the stack contains the value to be traced
@@ -360,7 +364,8 @@ public class Emitter {
 	}
 
 	public static void emitBindTrace(GeneratorAdapter gen, ObjExpr objx, BindingInit bi, IPersistentVector coord) {
-        if (bindInstrumentationEnable) {
+		Integer formId = (Integer) Compiler.FORM_ID.deref();
+        if (bindInstrumentationEnable && formId != null) {
             String symName = Compiler.demunge(bi.binding().name);
             Integer bIdx = bi.binding().idx;
 		
@@ -410,30 +415,30 @@ public class Emitter {
 		}
 	}
 
-	public static void emitFormsRegistration(GeneratorAdapter gen, List<Object> forms, String sourcePath) {
-        Namespace ns = (Namespace) RT.CURRENT_NS.deref();
-        String fns = ns.getName().toString();
+	// public static void emitFormsRegistration(GeneratorAdapter gen, List<Object> forms, String sourcePath) {
+    //     Namespace ns = (Namespace) RT.CURRENT_NS.deref();
+    //     String fns = ns.getName().toString();
 
-        if (!skipInstrumentation(Compiler.munge(fns))) {
-            for (Object form : forms) {
-                IPersistentMap fmeta = RT.meta(form);
-                if (fmeta != null) {
-                    int fline = -1;
-                    // when using the decompiler this is being returned as a Long and throwing a cast error
-                    // so lets hack it like this
-                    Object oline = fmeta.valAt(LINE_KEY);
-                    if (oline instanceof Integer) {
-                        fline = (Integer) oline;
-                        }
+    //     if (!skipInstrumentation(Compiler.munge(fns))) {
+    //         for (Object form : forms) {
+    //             IPersistentMap fmeta = RT.meta(form);
+    //             if (fmeta != null) {
+    //                 int fline = -1;
+    //                 // when using the decompiler this is being returned as a Long and throwing a cast error
+    //                 // so lets hack it like this
+    //                 Object oline = fmeta.valAt(LINE_KEY);
+    //                 if (oline instanceof Integer) {
+    //                     fline = (Integer) oline;
+    //                     }
 
-                    int fid = form.hashCode();
-                    gen.push(fid);
-                    gen.push(fline);
-                    gen.push(fns);
-                    gen.push(sourcePath);
-                    gen.invokeStatic(TRACER_CLASS_TYPE, Method.getMethod("void registerFormLocation(int, int, String, String)"));
-                    }
-                }
-            }		
-	}
+    //                 int fid = form.hashCode();
+    //                 gen.push(fid);
+    //                 gen.push(fline);
+    //                 gen.push(fns);
+    //                 gen.push(sourcePath);
+    //                 gen.invokeStatic(TRACER_CLASS_TYPE, Method.getMethod("void registerFormLocation(int, int, String, String)"));
+    //                 }
+    //             }
+    //         }		
+	// }
 }
