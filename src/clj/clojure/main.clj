@@ -22,6 +22,8 @@
   ;;(:use [clojure.repl :only (demunge root-cause stack-element-str)])
   )
 
+(storm-repl/maybe-init-flow-storm)
+
 (declare main)
 
 ;;;;;;;;;;;;;;;;;;; redundantly copied from clojure.repl to avoid dep ;;;;;;;;;;;;;;
@@ -412,11 +414,6 @@ by default when a new command-line REPL is started."} repl-requires
   [& options]
   (let [cl (.getContextClassLoader (Thread/currentThread))]
     (.setContextClassLoader (Thread/currentThread) (clojure.lang.DynamicClassLoader. cl)))
-
-  ;; the if needed part is because nrepl will call this
-  ;; repl fn on each evaluation. Maybe we should find a better place
-  ;; to initialize flow-storm recordings
-  (storm-repl/init-flow-storm-if-needed)
   
   (let [{:keys [init need-prompt prompt flush read eval print caught]
          :or {init        #()
@@ -440,16 +437,15 @@ by default when a new command-line REPL is started."} repl-requires
                           (with-read-known (read request-prompt request-exit))
                           (catch LispReader$ReaderException e
                             (throw (ex-info nil {:clojure.error/phase :read-source} e))))]
-              (or (storm-repl/maybe-execute-storm-specials input)
-                  (#{request-prompt request-exit} input)
-                 (let [value (binding [*read-eval* read-eval] (eval input))]
-                   (set! *3 *2)
-                   (set! *2 *1)
-                   (set! *1 value)
-                   (try
-                     (print value)
-                     (catch Throwable e
-                       (throw (ex-info nil {:clojure.error/phase :print-eval-result} e)))))))
+              (or (#{request-prompt request-exit} input)
+                  (let [value (binding [*read-eval* read-eval] (eval input))]
+                    (set! *3 *2)
+                    (set! *2 *1)
+                    (set! *1 value)
+                    (try
+                      (print value)
+                      (catch Throwable e
+                        (throw (ex-info nil {:clojure.error/phase :print-eval-result} e)))))))
             (catch Throwable e              
               (caught e)
               (set! *e e))))]

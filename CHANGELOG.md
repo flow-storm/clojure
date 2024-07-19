@@ -8,6 +8,8 @@
 
     - Don't instrument in .class compilation path 
     - Lein init form instrumentation ignore
+    - Move maybe-init-flow-storm out of clojure.main/repl to support nrepl >= 1.3.0
+    - Move maybe-execute-storm-specials into Compiler.eval to support nrepl >= 1.3.0
     
 ### Bugs fixed 
 
