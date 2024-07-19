@@ -1,8 +1,6 @@
 (ns clojure.storm.repl  
   (:import [clojure.storm Emitter Tracer]))
 
-(def ^:private storm-initialized? (atom false))
-
 (defn- call-flow-storm [fn-symb & args]
   (try
     (let [fqsym (symbol "flow-storm.storm-api" (name fn-symb))
@@ -41,8 +39,6 @@
     :noinst     (do (Emitter/setInstrumentationEnable false)    true)
     (call-flow-storm 'maybe-execute-flow-storm-specials input)))
 
-(defn init-flow-storm-if-needed []  
-  (when-not @storm-initialized?    
-    (call-flow-storm 'start-recorder)
-    (reset! storm-initialized? true)))
+(defn maybe-init-flow-storm []
+  (call-flow-storm 'start-recorder))
 

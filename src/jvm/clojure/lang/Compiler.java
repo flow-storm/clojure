@@ -7432,7 +7432,19 @@ private static void maybeRegisterForm(Integer formId, String file, Object line, 
 
 	}
 }
+
+public static void stormEnhancedReplEval(Object form) {
+    try {
+        Var maybeExecuteStormSpecials = Var.find(Symbol.create("clojure.storm.repl", "maybe-execute-storm-specials"));
+        if (maybeExecuteStormSpecials != null)
+            ((IFn)(maybeExecuteStormSpecials.deref())).invoke(form);            
+        } catch (Exception e) {}        
+}
+    
 public static Object eval(Object form, boolean freshLoader) {
+
+    stormEnhancedReplEval(form);
+    
 	boolean createdLoader = false;
 
 	if(true)//!LOADER.isBound())
