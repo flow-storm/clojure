@@ -8,6 +8,16 @@
                     
 ### Bugs fixed 
 
+## 1.12.0-rc2 (02-09-2024)
+
+### New Features
+    
+### Changes
+
+    - Tracking official 1.12.0-rc2
+                    
+### Bugs fixed 
+
 ## 1.12.0-rc1 (03-08-2024)
 
 ### New Features
