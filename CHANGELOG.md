@@ -8,6 +8,18 @@
                     
 ### Bugs fixed 
 
+    - Fix blank prefixes properties case
+
+## 1.12.0 (06-09-2024)
+
+### New Features
+    
+### Changes
+
+    - Tracking official 1.12.0
+                    
+### Bugs fixed 
+
 ## 1.12.0-rc2 (02-09-2024)
 
 ### New Features
