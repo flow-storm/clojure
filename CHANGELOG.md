@@ -4,6 +4,52 @@
 
 ### New Features
 
+    - Fix blank prefixes properties case
+
+## 1.12.0 (06-09-2024)
+
+### New Features
+    
+### Changes
+
+    - Tracking official 1.12.0
+                    
+### Bugs fixed 
+
+## 1.12.0-rc2 (02-09-2024)
+
+### New Features
+    
+### Changes
+
+    - Tracking official 1.12.0-rc2
+                    
+### Bugs fixed 
+
+## 1.12.0-rc1 (03-08-2024)
+
+### New Features
+    
+### Changes
+
+    - Tracking official 1.12.0-rc1
+                    
+### Bugs fixed 
+
+## 1.12.0-beta2 (02-08-2024)
+
+### New Features
+    
+### Changes
+
+    - Tracking official 1.12.0-beta2
+                    
+### Bugs fixed 
+
+## 1.12.0-beta1_1 (20-06-2024)
+
+### New Features
+    
 ### Changes
 
     - Don't instrument in .class compilation path 

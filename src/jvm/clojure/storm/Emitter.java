@@ -73,16 +73,16 @@ public class Emitter {
             }
         
         String onlyPrefixesProp = System.getProperty("clojure.storm.instrumentOnlyPrefixes");
-		if(onlyPrefixesProp != null)
+		if(onlyPrefixesProp != null && !onlyPrefixesProp.isBlank())
 			{
-				String[] prefixes = onlyPrefixesProp.split(",");
+                String[] prefixes = onlyPrefixesProp.split(",");
 				for(String p : prefixes)
 					addInstrumentationOnlyPrefix(p);
 					
 			}
         
         String skipPrefixesProp = System.getProperty("clojure.storm.instrumentSkipPrefixes"); 
-		if(skipPrefixesProp != null)
+		if(skipPrefixesProp != null && !skipPrefixesProp.isBlank())
 			{
 				String[] prefixes = skipPrefixesProp.split(",");
 				for(String p : prefixes)
