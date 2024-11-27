@@ -7,6 +7,14 @@
 ### Changes
                     
 ### Bugs fixed 
+    
+## 1.12.0-2 (27-11-2024)
+
+### New Features
+    
+### Changes
+                    
+### Bugs fixed 
 
     - Trace most statements also
 
