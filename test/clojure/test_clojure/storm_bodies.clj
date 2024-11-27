@@ -9,6 +9,7 @@
   (let [r (b/tried)]
     (is (= 4 r) "function return should be right.")
     (is (= [[:fn-call "clojure.test-clojure.storm-test-code.bodies" "tried" [] 524795972]
+            [:expr-exec 2 "3,1"]
             [:expr-exec "#error[Dummy]" "3,2,1"]
             [:expr-exec 4 "3,3,3"]
             [:fn-return 4 ""]]           
@@ -120,6 +121,9 @@
   (let [r (b/doer)]
     (is (= 8 r) "function return should be right.")
     (is (= [[:fn-call "clojure.test-clojure.storm-test-code.bodies" "doer" [] -378760067]
+            [:expr-exec 2 "3,1"]
+            [:expr-exec 4 "3,2"]
+            [:expr-exec 6 "3,3,1"]
             [:expr-exec 8 "3,3,2"]
             [:fn-return 8 ""]]           
            (u/capture)) "captured traces should match.")))

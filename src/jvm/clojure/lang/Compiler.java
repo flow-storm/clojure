@@ -2097,10 +2097,14 @@ static class InstanceMethodExpr extends MethodExpr{
             
 			if(context == C.STATEMENT)
 				{
-				if(retClass == long.class || retClass == double.class)
+				if(retClass == long.class || retClass == double.class) {
+                    Emitter.emitExprTrace(gen, objx, coord, Type.getType(retClass));
 					gen.pop2();
-				else if(retClass != void.class)
+                    }
+				else if(retClass != void.class) {
+                    Emitter.emitExprTrace(gen, objx, coord, Type.getType(retClass));
 					gen.pop();
+                    }
 				}
 			else
 				{
@@ -2351,9 +2355,15 @@ static class StaticMethodExpr extends MethodExpr{
 			if(context == C.STATEMENT)
 				{
 				if(retClass == long.class || retClass == double.class)
+                    {
+                    Emitter.emitExprTrace(gen, objx, coord, Type.getType(retClass));
 					gen.pop2();
+                    }
 				else if(retClass != void.class)
+                    {
+                    Emitter.emitExprTrace(gen, objx, coord, Type.getType(retClass));
 					gen.pop();
+                    }
 				}
 			else
 				{
@@ -4058,10 +4068,9 @@ static class StaticInvokeExpr implements Expr, MaybePrimitiveExpr{
 	public void emit(C context, ObjExpr objx, GeneratorAdapter gen){
 		emitUnboxed(context, objx, gen);
 		if(context != C.STATEMENT)
-			{
-			HostExpr.emitBoxReturn(objx,gen,retClass);
-			Emitter.emitExprTrace(gen, objx, coord, OBJECT_TYPE);
-			}
+			HostExpr.emitBoxReturn(objx,gen,retClass);            
+            
+        Emitter.emitExprTrace(gen, objx, coord, OBJECT_TYPE);
 		
 		if(context == C.STATEMENT)
 			{

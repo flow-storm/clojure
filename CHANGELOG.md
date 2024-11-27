@@ -8,6 +8,16 @@
                     
 ### Bugs fixed 
 
+    - Trace most statements also
+
+## 1.12.0-1 (06-09-2024)
+
+### New Features
+    
+### Changes
+                    
+### Bugs fixed 
+
     - Fix blank prefixes properties case
 
 ## 1.12.0 (06-09-2024)
