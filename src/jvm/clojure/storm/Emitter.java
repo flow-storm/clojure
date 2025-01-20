@@ -415,30 +415,33 @@ public class Emitter {
 		}
 	}
 
-	// public static void emitFormsRegistration(GeneratorAdapter gen, List<Object> forms, String sourcePath) {
-    //     Namespace ns = (Namespace) RT.CURRENT_NS.deref();
-    //     String fns = ns.getName().toString();
+    // This is only for the compile path (when calling clojure compile).
+    // Supporting the compile path is useful only for debugging, like using
+    // clj-java-decompiler
+	public static void emitFormsRegistration(GeneratorAdapter gen, List<Object> forms, String sourcePath) {
+        Namespace ns = (Namespace) RT.CURRENT_NS.deref();
+        String fns = ns.getName().toString();
 
-    //     if (!skipInstrumentation(Compiler.munge(fns))) {
-    //         for (Object form : forms) {
-    //             IPersistentMap fmeta = RT.meta(form);
-    //             if (fmeta != null) {
-    //                 int fline = -1;
-    //                 // when using the decompiler this is being returned as a Long and throwing a cast error
-    //                 // so lets hack it like this
-    //                 Object oline = fmeta.valAt(LINE_KEY);
-    //                 if (oline instanceof Integer) {
-    //                     fline = (Integer) oline;
-    //                     }
+        if (!skipInstrumentation(Compiler.munge(fns))) {
+            for (Object form : forms) {
+                IPersistentMap fmeta = RT.meta(form);
+                if (fmeta != null) {
+                    int fline = -1;
+                    // when using the decompiler this is being returned as a Long and throwing a cast error
+                    // so lets hack it like this
+                    Object oline = fmeta.valAt(LINE_KEY);
+                    if (oline instanceof Integer) {
+                        fline = (Integer) oline;
+                        }
 
-    //                 int fid = form.hashCode();
-    //                 gen.push(fid);
-    //                 gen.push(fline);
-    //                 gen.push(fns);
-    //                 gen.push(sourcePath);
-    //                 gen.invokeStatic(TRACER_CLASS_TYPE, Method.getMethod("void registerFormLocation(int, int, String, String)"));
-    //                 }
-    //             }
-    //         }		
-	// }
+                    int fid = form.hashCode();
+                    gen.push(fid);
+                    gen.push(fline);
+                    gen.push(fns);
+                    gen.push(sourcePath);
+                    gen.invokeStatic(TRACER_CLASS_TYPE, Method.getMethod("void registerFormLocation(int, int, String, String)"));
+                    }
+                }
+            }		
+	}
 }

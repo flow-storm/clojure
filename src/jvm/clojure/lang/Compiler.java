@@ -7972,12 +7972,17 @@ public static Object eval(Object form, boolean freshLoader) {
 		Object column = (meta != null ? meta.valAt(RT.COLUMN_KEY, COLUMN.deref()) : COLUMN.deref());
 
         IPersistentMap bindings = RT.mapUniqueKeys(LINE, line, COLUMN, column);
+        
+        // [STORM] For each evaluation, before macroexpanding :
+        // We add this same code on the compile path
+        // Supporting the compile path is useful only for debugging, like using
+        // clj-java-decompiler
+        // ------------------------------------------------------------------------
 
         Integer formId = null;
         HashSet<String> formCoords = null;
         Object origForm = form;
-        
-        // [STORM] For each evaluation, before macroexpanding :                
+
         if (form != null &&
 				!Emitter.skipInstrumentation(munge(currentNS().toString()))) {
 			if (!Utils.isAnnoyingLeinNreplForm(origForm)) {
@@ -7996,6 +8001,7 @@ public static Object eval(Object form, boolean freshLoader) {
 				System.out.println("ClojureStorm: skipping lein initialization form instrumentation being evaluated in " + currentNS().toString());
 			}
 		}
+        // ------------------------------------------------------------------------
 		if(meta != null) {
 			Object eval_file = meta.valAt(RT.EVAL_FILE_KEY);
 			if(eval_file != null) {
@@ -8684,14 +8690,49 @@ public static Object compile(Reader rdr, String sourcePath, String sourceName) t
 		for(Object r = LispReader.read(pushbackReader, false, EOF, false, readerOpts); r != EOF;
 			r = LispReader.read(pushbackReader, false, EOF, false, readerOpts))
 			{
-				
+            
+            // [STORM] For each evaluation, before macroexpanding :
+            // We add this same code on the compile path
+            // Supporting the compile path is useful only for debugging, like using
+            // clj-java-decompiler
+            // ------------------------------------------------------------------------
+
+            Object origForm = r;
+            Integer formId = null;
+            HashSet<String> formCoords = null;
+            boolean stormPushedBindings = false;
+            if (r != null &&
+				!Emitter.skipInstrumentation(munge(currentNS().toString()))) {
+                if (!Utils.isAnnoyingLeinNreplForm(origForm)) {
+                    // Calculate the form id
+                    formId = r.hashCode();
+                    formCoords = new HashSet();
+
+                    // Tag the coords
+                    r = Utils.tagStormCoord(r);
+
+                    // Bind FORM_ID so everything down the road knows what form
+                    // they belong to                    
+                    Var.pushThreadBindings(
+                        RT.mapUniqueKeys(FORM_ID, formId,
+			                             FORM_COORDS, formCoords));
+                    stormPushedBindings = true;
+                    } else {
+                    System.out.println("ClojureStorm: skipping lein initialization form instrumentation being evaluated in " + currentNS().toString());
+                    }
+                }
+            // ------------------------------------------------------------------------
 			LINE_AFTER.set(pushbackReader.getLineNumber());
 			COLUMN_AFTER.set(pushbackReader.getColumnNumber());
 			compile1(gen, objx, r);
 			LINE_BEFORE.set(pushbackReader.getLineNumber());
 			COLUMN_BEFORE.set(pushbackReader.getColumnNumber());
 
+            if (stormPushedBindings) Var.popThreadBindings();
 			}
+
+        // generate forms registration
+		Emitter.emitFormsRegistration(gen, forms, sourcePath);
 
 		//end of load
 		gen.returnValue();
