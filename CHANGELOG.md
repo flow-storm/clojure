@@ -7,6 +7,16 @@
 ### Changes
                     
 ### Bugs fixed 
+
+## 1.12.0-3 (28-01-2025)
+
+### New Features
+    
+### Changes
+
+    - Bring back instrumentation to the compile path to support decompiling for debugging
+                    
+### Bugs fixed 
     
 ## 1.12.0-2 (27-11-2024)
 
