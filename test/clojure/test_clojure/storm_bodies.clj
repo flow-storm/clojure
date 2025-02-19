@@ -106,6 +106,22 @@
             [:fn-return 15 ""]]
            (u/capture)) "captured traces should match.")))
 
+(deftest reified-let-test
+  (let [r (b/reified-let)]
+    (is (= 30 r) "function return should be right.")
+    (is (=  [[:fn-call "clojure.test-clojure.storm-test-code.bodies" "reified-let" [] 1131527981]
+             [:fn-call "clojure.test-clojure.storm-test-code.bodies" "doit" [] 1131527981]
+             [:bind "a" 10 "3,1,2,2"]
+             [:bind "b" 20 "3,1,2,2"]
+             [:expr-exec 10 "3,1,2,2,2,1"]
+             [:expr-exec 20 "3,1,2,2,2,2"]
+             [:expr-exec 30 "3,1,2,2,2"]
+             [:expr-exec 30 "3,1,2,2"]
+             [:fn-return 30 "3,1,2,0"]
+             [:expr-exec 30 "3"]
+             [:fn-return 30 ""]]
+            (u/capture)) "captured traces should match.")))
+
 (deftest case-test
   (let [r (b/casey :first)]
     (is (= 42 r) "function return should be right.")

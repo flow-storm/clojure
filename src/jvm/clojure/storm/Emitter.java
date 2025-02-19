@@ -369,10 +369,10 @@ public class Emitter {
             String symName = Compiler.demunge(bi.binding().name);
             Integer bIdx = bi.binding().idx;
 		
-            if (objx instanceof FnExpr &&
-                !skipInstrumentation(((FnExpr)objx).name()) &&
-                coord != null &&
-                !(symName.equals("-") || symName.contains("--"))) {
+            if (((objx instanceof FnExpr && !skipInstrumentation(((FnExpr)objx).name())) || (objx instanceof NewInstanceExpr && !skipInstrumentation(((NewInstanceExpr)objx).name()))) &&
+					coord != null &&
+					(!(symName.equals("-") || symName.contains("--"))))
+					{
 
                 Type valType = null;
                 Class primc = Compiler.maybePrimitiveType(bi.init());
@@ -393,7 +393,8 @@ public class Emitter {
 	public static void emitBindTraces(GeneratorAdapter gen, ObjExpr objx, IPersistentVector localBindings,
 			IPersistentVector coord) {
 
-		if (bindInstrumentationEnable && objx instanceof FnExpr && !skipInstrumentation(((FnExpr) objx).name())) {
+		if (bindInstrumentationEnable &&
+				((objx instanceof FnExpr && !skipInstrumentation(((FnExpr) objx).name())) || (objx instanceof NewInstanceExpr && !skipInstrumentation(((NewInstanceExpr) objx).name())))) {
             
 			for (int i = 0; i < localBindings.count(); i++) {
 

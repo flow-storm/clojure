@@ -8,6 +8,8 @@
                     
 ### Bugs fixed 
 
+    - Fix let/loop bindings not being traced inside reify
+
 ## 1.12.0-3 (28-01-2025)
 
 ### New Features

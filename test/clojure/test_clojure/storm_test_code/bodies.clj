@@ -34,6 +34,17 @@
             z)]
     c))
 
+(defprotocol PP
+  (doit [_]))
+
+(defn reified-let []
+  (doit
+   (reify PP
+     (doit [_]
+       (let [a 10
+             b 20]
+         (+ a b))))))
+
 (defn casey [x]
   (case x
     :first (+ 40 2)
