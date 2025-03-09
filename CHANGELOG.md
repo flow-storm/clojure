@@ -7,6 +7,24 @@
 ### Changes
                     
 ### Bugs fixed 
+    
+## 1.12.0-6 (09-03-2025)
+
+### New Features
+    
+### Changes
+                    
+### Bugs fixed 
+
+    - Never instrument flow-storm with auto-prefixes
+
+## 1.12.0-5 (09-03-2025)
+
+### New Features
+    
+### Changes
+                    
+### Bugs fixed 
 
     - Fix autoprefixes on Windows
     
