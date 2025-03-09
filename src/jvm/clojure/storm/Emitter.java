@@ -66,9 +66,14 @@ public class Emitter {
         if(autoPrefixesProp != null && Boolean.parseBoolean(autoPrefixesProp))
             {
             for (String autoPrefix : Utils.classpathSrcDirstRootNamespaces())
-                {
-                System.out.println("ClojureStorm adding instrumentation auto prefix " + autoPrefix);
-                addInstrumentationOnlyPrefix(autoPrefix);
+                {                
+                // This is kind of hacky because ClojureStorm shouldn't have anything related to
+                // flow-storm, but we want to be sure that we never automatically instrument flow-storm root
+                if(!autoPrefix.equals("flow-storm")) {
+                    System.out.println("ClojureStorm adding instrumentation auto prefix " + autoPrefix);
+                    addInstrumentationOnlyPrefix(autoPrefix);
+                }
+                    
                 }
             }
         
