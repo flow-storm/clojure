@@ -7,6 +7,8 @@
 ### Changes
                     
 ### Bugs fixed 
+
+    - Fix autoprefixes on Windows
     
 ## 1.12.0-4 (19-02-2025)
 

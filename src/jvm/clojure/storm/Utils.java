@@ -287,13 +287,12 @@ public class Utils {
         List<File> allDirFiles = new ArrayList();
 
         Pattern pattern = Pattern.compile(".+?" + dir.getName() + "/(.+?)/.*");
-        
         collectFiles(dir, allDirFiles);
         for (File f : allDirFiles) {
             if (f.getName().endsWith(".clj") ||
                 f.getName().endsWith(".cljc")) {
-                
-                Matcher matcher = pattern.matcher(f.getAbsolutePath());
+
+                Matcher matcher = pattern.matcher(f.getAbsolutePath().replace("\\","/"));
                     
                 if (matcher.find() && matcher.groupCount() >= 1) {
                     String rootDir = matcher.group(1);
