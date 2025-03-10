@@ -359,12 +359,13 @@ public class Emitter {
 	public static void emitBindTrace(GeneratorAdapter gen, ObjExpr objx, BindingInit bi, IPersistentVector coord) {
 		Integer formId = (Integer) Compiler.FORM_ID.deref();
         if (bindInstrumentationEnable && formId != null) {
-            String symName = Compiler.demunge(bi.binding().name);
+            String bindingName = Compiler.demunge(bi.binding().name);
+            String symName = bi.binding().sym.getName();
             Integer bIdx = bi.binding().idx;
 		
             if (((objx instanceof FnExpr && !skipInstrumentation(((FnExpr)objx).name())) || (objx instanceof NewInstanceExpr && !skipInstrumentation(((NewInstanceExpr)objx).name()))) &&
 					coord != null &&
-					(!(symName.equals("-") || symName.contains("--"))))
+					(!(bindingName.equals("-") || bindingName.contains("--"))))
 					{
 
                 Type valType = null;
@@ -390,12 +391,13 @@ public class Emitter {
 				((objx instanceof FnExpr && !skipInstrumentation(((FnExpr) objx).name())) || (objx instanceof NewInstanceExpr && !skipInstrumentation(((NewInstanceExpr) objx).name())))) {
             
 			for (int i = 0; i < localBindings.count(); i++) {
-
+                
 				LocalBinding lb = (LocalBinding) localBindings.nth(i);
 
-				String symName = Compiler.demunge(lb.name);
+                String bindingName = Compiler.demunge(lb.name);
+				String symName = lb.sym.getName();
 
-				if (coord != null && !(symName.equals("-") || symName.contains("--")) && lb.used) {
+				if (coord != null && !(bindingName.equals("-") || bindingName.contains("--")) && lb.used) {
 					
 					objx.emitLocal(gen, lb, false, null);
 					

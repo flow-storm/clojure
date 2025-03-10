@@ -8,6 +8,8 @@
                     
 ### Bugs fixed 
 
+    - Fix binding trace, report symb name instead of demunging lb.name so we don't report _a-bind as -a-bind
+
 ## 1.12.0-7 (10-03-2025)
 
 ### New Features
