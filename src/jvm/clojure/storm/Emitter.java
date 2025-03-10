@@ -69,7 +69,7 @@ public class Emitter {
                 {                
                 // This is kind of hacky because ClojureStorm shouldn't have anything related to
                 // flow-storm, but we want to be sure that we never automatically instrument flow-storm root
-                if(!autoPrefix.equals("flow-storm")) {
+                if(!autoPrefix.equals("flow-storm") && !autoPrefix.equals("clojure")) {
                     System.out.println("ClojureStorm adding instrumentation auto prefix " + autoPrefix);
                     addInstrumentationOnlyPrefix(autoPrefix);
                 }
@@ -77,23 +77,11 @@ public class Emitter {
                 }
             }
         
-        String onlyPrefixesProp = System.getProperty("clojure.storm.instrumentOnlyPrefixes");
-		if(onlyPrefixesProp != null && !onlyPrefixesProp.isBlank())
-			{
-                String[] prefixes = onlyPrefixesProp.split(",");
-				for(String p : prefixes)
-					addInstrumentationOnlyPrefix(p);
-					
-			}
+        for(String p : Utils.prefixesForPropStartingWith("clojure.storm.instrumentOnlyPrefixes"))
+            addInstrumentationOnlyPrefix(p);
         
-        String skipPrefixesProp = System.getProperty("clojure.storm.instrumentSkipPrefixes"); 
-		if(skipPrefixesProp != null && !skipPrefixesProp.isBlank())
-			{
-				String[] prefixes = skipPrefixesProp.split(",");
-				for(String p : prefixes)
-					addInstrumentationSkipPrefix(p);
-					
-			}
+        for(String p : Utils.prefixesForPropStartingWith("clojure.storm.instrumentSkipPrefixes"))
+            addInstrumentationSkipPrefix(p);
 
         String skipRegexProp = System.getProperty("clojure.storm.instrumentSkipRegex"); 
 		if(skipRegexProp != null)

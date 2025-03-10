@@ -28,6 +28,8 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.Map;
+import java.util.Properties;
 import java.io.File;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -333,6 +335,26 @@ public class Utils {
             }
         }
         return false;
+    }
+
+    public static List<String> prefixesForPropStartingWith(String propPrefix) {
+        List foundPrefixes = new ArrayList<String>();
+
+        Properties properties = System.getProperties();
+        for(Map.Entry<Object, Object> propEntry : properties.entrySet()) {
+            String propKey = (String)propEntry.getKey();
+            if (propKey.startsWith(propPrefix)) {
+                String propVal = (String)propEntry.getValue();
+
+                if(propVal != null && !propVal.isBlank()) {
+                    String[] prefixes = propVal.split(",");
+                    for(String p : prefixes)
+                        foundPrefixes.add(p);					
+                    }        
+                }
+            }
+        
+        return foundPrefixes;
     }
 
 	}

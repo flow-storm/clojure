@@ -3,6 +3,8 @@
 ## master (unreleased)
 
 ### New Features
+
+    - Support multiple clojure.storm.instrumentOnlyPrefixes.* and clojure.storm.instrumentSkipPrefixes.* that will get merged
     
 ### Changes
                     
