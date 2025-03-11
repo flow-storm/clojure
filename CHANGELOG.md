@@ -5,6 +5,14 @@
 ### New Features
     
 ### Changes
+                        
+### Bugs fixed 
+
+## 1.12.0-9 (11-03-2025)
+
+### New Features
+    
+### Changes
 
     - Make autoPrefixes and instrumentEnable true by default
                     
