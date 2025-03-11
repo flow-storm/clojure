@@ -42,7 +42,7 @@ public class Emitter {
 	static Keyword LINE_KEY = Keyword.intern(null, "line");
 	static Keyword NS_KEY = Keyword.intern(null, "ns");
     
-	public static Var INSTRUMENTATION_ENABLE = Var.create(false).setDynamic();
+	public static Var INSTRUMENTATION_ENABLE = Var.create(true).setDynamic();
 
     private static ArrayList<String> instrumentationOnlyPrefixes = new ArrayList();
 	private static ArrayList<String> instrumentationSkipPrefixes = new ArrayList();    
@@ -63,8 +63,8 @@ public class Emitter {
 			setInstrumentationEnable(Boolean.parseBoolean(instrumentationEnableProp)); 
 
         String autoPrefixesProp = System.getProperty("clojure.storm.instrumentAutoPrefixes");
-        if(autoPrefixesProp != null && Boolean.parseBoolean(autoPrefixesProp))
-            {
+        boolean autoPrefixes = autoPrefixesProp==null || Boolean.parseBoolean(autoPrefixesProp);
+        if(autoPrefixes) {
             for (String autoPrefix : Utils.classpathSrcDirstRootNamespaces())
                 {                
                 // This is kind of hacky because ClojureStorm shouldn't have anything related to
@@ -75,7 +75,7 @@ public class Emitter {
                 }
                     
                 }
-            }
+        }
         
         for(String p : Utils.prefixesForPropStartingWith("clojure.storm.instrumentOnlyPrefixes"))
             addInstrumentationOnlyPrefix(p);

@@ -5,6 +5,8 @@
 ### New Features
     
 ### Changes
+
+    - Make autoPrefixes and instrumentEnable true by default
                     
 ### Bugs fixed 
  
