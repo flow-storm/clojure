@@ -346,7 +346,7 @@ public class Utils {
             if (propKey.startsWith(propPrefix)) {
                 String propVal = (String)propEntry.getValue();
 
-                if(propVal != null && !propVal.isBlank()) {
+                if(propVal != null && !propVal.trim().equals("")) {
                     String[] prefixes = propVal.split(",");
                     for(String p : prefixes)
                         foundPrefixes.add(p);					
