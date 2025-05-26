@@ -6,6 +6,16 @@
     
 ### Changes
 
+### Bugs fixed 
+
+    - Don't trace non-return try's anon functions calls
+
+## 1.12.0-9 (11-03-2025)
+
+### New Features
+    
+### Changes
+
     - Make autoPrefixes and instrumentEnable true by default
                     
 ### Bugs fixed 

@@ -2368,7 +2368,7 @@ public static class TryExpr implements Expr{
 			ISeq form = (ISeq) frm;
 //			if(context == C.EVAL || context == C.EXPRESSION)
 			if(context != C.RETURN)
-				return analyze(context, RT.list(RT.list(FNONCE, PersistentVector.EMPTY, form)));
+				return analyze(context, RT.list(RT.list(FNONCE,  PersistentVector.EMPTY.withMeta(RT.map(SKIP_TRACE_KEY, true)), form)));
 
 			//(try try-expr* catch-expr* finally-expr?)
 			//catch-expr: (catch class sym expr*)
