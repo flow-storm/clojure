@@ -836,7 +836,7 @@
                                         specs)]
                  (map (fn [[[target & args] & body]]
                         (cons (with-meta (apply vector (vary-meta target assoc :tag c) args)
-                                {:clojure.storm/fn-trace-sym mname})
+                                {:clojure.storm/fn-trace-sym (symbol (str c "." mname))})
                               body))
                       specs)))]
     [p (zipmap (map #(-> % first name keyword) fs)
