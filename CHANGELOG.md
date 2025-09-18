@@ -5,6 +5,18 @@
 ### New Features
     
 ### Changes
+
+    - Trace objects methods calls as ClassName.method-name, instead of just method-name
+                        
+### Bugs fixed 
+
+## 1.12.2 (26-08-2025)
+
+### New Features
+    
+### Changes
+
+    - Just rebasing on top of official 1.12.2
                         
 ### Bugs fixed 
 

@@ -8756,7 +8756,7 @@ public static Object compile(Reader rdr, String sourcePath, String sourceName) t
 			{
             
             // [STORM] For each evaluation, before macroexpanding :
-            // We add this same code on the compile path
+            // This is the same code added in the load path
             // Supporting the compile path is useful only for debugging, like using
             // clj-java-decompiler
             // ------------------------------------------------------------------------
@@ -9591,6 +9591,19 @@ public static class NewInstanceMethod extends ObjMethod{
 		return ret;
 	}
 
+	private String objectClassName(String objExprName) {
+		String objClassName = "";
+		int dotIdx=objExprName.lastIndexOf(".");
+		if (objExprName.indexOf("reify__") != -1) {
+			objClassName = objExprName.substring(objExprName.indexOf("reify__"));
+		} else if (dotIdx != -1) {
+			objClassName = objExprName.substring(dotIdx + 1);
+		}
+		else {
+			objClassName = objExprName;
+		}
+		return objClassName;
+	}
 	public void emit(ObjExpr obj, ClassVisitor cv){
 		Method m = new Method(getMethodName(), getReturnType(), getArgTypes());
 
@@ -9614,12 +9627,15 @@ public static class NewInstanceMethod extends ObjMethod{
 			}
 		gen.visitCode();
 
-		
-		String fqMethodName = Compiler.munge(Compiler.currentNS().name.name) + "$" + getMethodName();
+
+		String fqMethodName = "";
 
         Label prologueTryStartLabel = null;
-		if(!skipFnCallTrace)
+
+		if(!skipFnCallTrace) {
+			fqMethodName = Compiler.munge(Compiler.currentNS().name.name) + "$" + objectClassName(obj.name()) + "." + getMethodName();
 			prologueTryStartLabel = Emitter.emitFnPrologue(gen, obj, fqMethodName, extypes, argLocals);
+		}
 
 		Label loopLabel = gen.mark();
 
