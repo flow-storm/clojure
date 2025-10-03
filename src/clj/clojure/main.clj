@@ -525,8 +525,7 @@ by default when a new command-line REPL is started."} repl-requires
   present"
   [[_ & args] inits]
   (when-not (some #(= eval-opt (init-dispatch (first %))) inits)
-    (println "ClojureStorm" (clojure-version))
-    (println "\nEvaluate the :help keyword for more info or :tut/basics for a beginners tour.\n"))
+    (println "ClojureStorm" (clojure-version)))
   (repl :init (fn []
                 (initialize args inits)
                 (apply require repl-requires)))

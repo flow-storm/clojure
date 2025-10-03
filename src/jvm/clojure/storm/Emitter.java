@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.logging.Logger;
 
 import clojure.asm.Opcodes;
 import clojure.asm.Type;
@@ -32,6 +33,8 @@ import clojure.lang.Var;
 
 public class Emitter {
 
+    private static  Logger logger = Logger.getLogger("clojure.storm");
+    
 	final static Type TRACER_CLASS_TYPE = Type.getType(Tracer.class);
 	final static Type OBJECT_CLASS_TYPE = Type.getType(Object.class);    
 	final static Type INT_TYPE = Type.getType(int.class);
@@ -70,7 +73,7 @@ public class Emitter {
                 // This is kind of hacky because ClojureStorm shouldn't have anything related to
                 // flow-storm, but we want to be sure that we never automatically instrument flow-storm root
                 if(!autoPrefix.equals("flow-storm") && !autoPrefix.equals("clojure")) {
-                    System.out.println("ClojureStorm adding instrumentation auto prefix " + autoPrefix);
+                    logger.info("ClojureStorm adding instrumentation auto prefix " + autoPrefix);
                     addInstrumentationOnlyPrefix(autoPrefix);
                 }
                     
@@ -99,7 +102,7 @@ public class Emitter {
 			}
 		};
 		INSTRUMENTATION_ENABLE.alterRoot(f ,null);        
-		System.out.println("Storm instrumentation set to: " + INSTRUMENTATION_ENABLE.deref());
+		logger.info("Storm instrumentation set to: " + INSTRUMENTATION_ENABLE.deref());
 	}
 
 	public static Boolean getInstrumentationEnable() {
