@@ -35,6 +35,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Utils {
+
+    private static final Keyword TAG_KEY = Keyword.intern(null, "tag");
 	
 	public static Object mergeMeta(Object x, IPersistentMap m) {
 		if (x instanceof clojure.lang.IObj && RT.count(m) > 0) {
@@ -54,7 +56,9 @@ public class Utils {
             // m meta overrides the input Object meta when both have
             for (Object meo : m) {
                 IMapEntry me = (IMapEntry) meo;
-                retMeta = retMeta.assoc(me.key(), me.val());
+                if (!TAG_KEY.equals(me.key())) {
+                    retMeta = retMeta.assoc(me.key(), me.val());
+                }
             }
 
             return o.withMeta(retMeta);
