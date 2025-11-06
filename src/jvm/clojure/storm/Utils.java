@@ -36,8 +36,6 @@ import java.util.regex.Pattern;
 
 public class Utils {
 
-    private static final Keyword TAG_KEY = Keyword.intern(null, "tag");
-	
 	public static Object mergeMeta(Object x, IPersistentMap m) {
 		if (x instanceof clojure.lang.IObj && RT.count(m) > 0) {
             // if x supports meta and there is meta to merge
@@ -56,9 +54,7 @@ public class Utils {
             // m meta overrides the input Object meta when both have
             for (Object meo : m) {
                 IMapEntry me = (IMapEntry) meo;
-                if (!TAG_KEY.equals(me.key())) {
-                    retMeta = retMeta.assoc(me.key(), me.val());
-                }
+                retMeta = retMeta.assoc(me.key(), me.val());                
             }
 
             return o.withMeta(retMeta);
@@ -67,6 +63,26 @@ public class Utils {
         }
     }
 
+    public static IPersistentMap stormMeta(IPersistentMap m) {
+        if (m != null && RT.count(m) > 0) {
+            IPersistentMap retMeta = PersistentHashMap.EMPTY;
+
+            for (Object meObj : m) {
+                IMapEntry me = (IMapEntry) meObj;
+                if (me.key().equals(LispReader.COORD_KEY) ||
+                    me.key().equals(Compiler.STORM_COORDS_EMITTED_COORDS_KEY) ||
+                    me.key().equals(Compiler.SKIP_TRACE_KEY) ||
+                    me.key().equals(Compiler.FN_TRACE_SYM_KEY)) {
+                    retMeta = retMeta.assoc(me.key(), me.val());
+                    }
+                }
+            return retMeta;
+        } else {
+            return m;
+        }
+    }
+    
+    
 	public static Symbol maybeGetTraceSymbol(Symbol sym, ISeq form){
         // If the form is the expansion of a defmethod we use the symbol of
         // the defmethod as a trace symbol.

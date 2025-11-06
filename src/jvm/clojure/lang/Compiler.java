@@ -7812,7 +7812,7 @@ public static void checkSpecs(Var v, ISeq form) {
 }
 
 public static Object macroexpand1(Object x) {
-	IPersistentMap xMeta = RT.meta(x);
+	IPersistentMap stormMeta = Utils.stormMeta(RT.meta(x));
 
 	if(x instanceof ISeq)
 		{
@@ -7829,7 +7829,7 @@ public static Object macroexpand1(Object x) {
 				try
 					{
                     ISeq args = RT.cons(form, RT.cons(Compiler.LOCAL_ENV.get(), form.next()));
-					return  Utils.mergeMeta(v.applyTo(args), xMeta);
+					return  Utils.mergeMeta(v.applyTo(args), stormMeta);
 					}
 				catch(ArityException e)
 					{
@@ -7877,7 +7877,7 @@ public static Object macroexpand1(Object x) {
 						{
 						target = ((IObj)RT.list(IDENTITY, target)).withMeta(RT.map(RT.TAG_KEY,CLASS));
 						}
-					return Utils.mergeMeta(preserveTagAndCoord(form, RT.listStar(DOT, target, meth, form.next().next())), xMeta);
+					return Utils.mergeMeta(preserveTagAndCoord(form, RT.listStar(DOT, target, meth, form.next().next())), stormMeta);
 					}
 				else
 					{
@@ -7893,7 +7893,7 @@ public static Object macroexpand1(Object x) {
 					//(StringBuilder. "foo") => (new StringBuilder "foo")	
 					//else 
 					if(idx == sname.length() - 1)
-						return Utils.mergeMeta(RT.listStar(NEW, Symbol.intern(sname.substring(0, idx)), form.next()), xMeta);
+						return Utils.mergeMeta(RT.listStar(NEW, Symbol.intern(sname.substring(0, idx)), form.next()), stormMeta);
 					}
 				}
 			}
