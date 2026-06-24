@@ -250,13 +250,13 @@ public class ClassWriter extends ClassVisitor {
   // -----------------------------------------------------------------------------------------------
 
   @Override
-  public final void visit(
-      final int version,
-      final int access,
-      final String name,
-      final String signature,
-      final String superName,
-      final String[] interfaces) {
+  public void visit(
+          final int version,
+          final int access,
+          final String name,
+          final String signature,
+          final String superName,
+          final String[] interfaces) {
     this.version = version;
     this.accessFlags = access;
     this.thisClass = symbolTable.setMajorVersionAndClassName(version & 0xFFFF, name);
@@ -277,7 +277,7 @@ public class ClassWriter extends ClassVisitor {
   }
 
   @Override
-  public final void visitSource(final String file, final String debug) {
+  public void visitSource(final String file, final String debug) {
     if (file != null) {
       sourceFileIndex = symbolTable.addConstantUtf8(file);
     }
@@ -287,8 +287,8 @@ public class ClassWriter extends ClassVisitor {
   }
 
   @Override
-  public final ModuleVisitor visitModule(
-      final String name, final int access, final String version) {
+  public ModuleVisitor visitModule(
+          final String name, final int access, final String version) {
     return moduleWriter =
         new ModuleWriter(
             symbolTable,
@@ -303,8 +303,8 @@ public class ClassWriter extends ClassVisitor {
   }
 
   @Override
-  public final void visitOuterClass(
-      final String owner, final String name, final String descriptor) {
+  public void visitOuterClass(
+          final String owner, final String name, final String descriptor) {
     enclosingClassIndex = symbolTable.addConstantClass(owner).index;
     if (name != null && descriptor != null) {
       enclosingMethodIndex = symbolTable.addConstantNameAndType(name, descriptor);
@@ -312,7 +312,7 @@ public class ClassWriter extends ClassVisitor {
   }
 
   @Override
-  public final AnnotationVisitor visitAnnotation(final String descriptor, final boolean visible) {
+  public AnnotationVisitor visitAnnotation(final String descriptor, final boolean visible) {
     // Create a ByteVector to hold an 'annotation' JVMS structure.
     // See https://docs.oracle.com/javase/specs/jvms/se9/html/jvms-4.html#jvms-4.7.16.
     ByteVector annotation = new ByteVector();
@@ -328,8 +328,8 @@ public class ClassWriter extends ClassVisitor {
   }
 
   @Override
-  public final AnnotationVisitor visitTypeAnnotation(
-      final int typeRef, final TypePath typePath, final String descriptor, final boolean visible) {
+  public AnnotationVisitor visitTypeAnnotation(
+          final int typeRef, final TypePath typePath, final String descriptor, final boolean visible) {
     // Create a ByteVector to hold a 'type_annotation' JVMS structure.
     // See https://docs.oracle.com/javase/specs/jvms/se9/html/jvms-4.html#jvms-4.7.20.
     ByteVector typeAnnotation = new ByteVector();
@@ -348,7 +348,7 @@ public class ClassWriter extends ClassVisitor {
   }
 
   @Override
-  public final void visitAttribute(final Attribute attribute) {
+  public void visitAttribute(final Attribute attribute) {
     // Store the attributes in the <i>reverse</i> order of their visit by this method.
     attribute.nextAttribute = firstAttribute;
     firstAttribute = attribute;
@@ -364,8 +364,8 @@ public class ClassWriter extends ClassVisitor {
   }
 
   @Override
-  public final void visitInnerClass(
-      final String name, final String outerName, final String innerName, final int access) {
+  public void visitInnerClass(
+          final String name, final String outerName, final String innerName, final int access) {
     if (innerClasses == null) {
       innerClasses = new ByteVector();
     }
@@ -390,12 +390,12 @@ public class ClassWriter extends ClassVisitor {
   }
 
   @Override
-  public final FieldVisitor visitField(
-      final int access,
-      final String name,
-      final String descriptor,
-      final String signature,
-      final Object value) {
+  public FieldVisitor visitField(
+          final int access,
+          final String name,
+          final String descriptor,
+          final String signature,
+          final Object value) {
     FieldWriter fieldWriter =
         new FieldWriter(symbolTable, access, name, descriptor, signature, value);
     if (firstField == null) {
@@ -407,12 +407,12 @@ public class ClassWriter extends ClassVisitor {
   }
 
   @Override
-  public final MethodVisitor visitMethod(
-      final int access,
-      final String name,
-      final String descriptor,
-      final String signature,
-      final String[] exceptions) {
+  public MethodVisitor visitMethod(
+          final int access,
+          final String name,
+          final String descriptor,
+          final String signature,
+          final String[] exceptions) {
     MethodWriter methodWriter =
         new MethodWriter(symbolTable, access, name, descriptor, signature, exceptions, compute);
     if (firstMethod == null) {
@@ -424,7 +424,7 @@ public class ClassWriter extends ClassVisitor {
   }
 
   @Override
-  public final void visitEnd() {
+  public void visitEnd() {
     // Nothing to do.
   }
 

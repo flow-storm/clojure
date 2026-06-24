@@ -13,7 +13,7 @@ import clojure.asm.Type;
 import clojure.asm.Label;
 import clojure.asm.commons.GeneratorAdapter;
 import clojure.asm.commons.Method;
-import clojure.lang.AFn;
+import clojure.lang.*;
 import clojure.lang.Compiler;
 import clojure.lang.Compiler.BindingInit;
 import clojure.lang.Compiler.FnExpr;
@@ -21,17 +21,10 @@ import clojure.lang.Compiler.NewInstanceExpr;
 import clojure.lang.Compiler.FnMethod;
 import clojure.lang.Compiler.LocalBinding;
 import clojure.lang.Compiler.ObjExpr;
-import clojure.lang.IFn;
-import clojure.lang.IPersistentMap;
-import clojure.lang.IPersistentVector;
-import clojure.lang.Keyword;
-import clojure.lang.Namespace;
-import clojure.lang.PersistentVector;
-import clojure.lang.RT;
-import clojure.lang.Symbol;
-import clojure.lang.Var;
 
 public class Emitter {
+
+    static final public Atom formsEmissions = new Atom(RT.map());
 
     private static  Logger logger = Logger.getLogger("clojure.storm");
     
@@ -44,13 +37,18 @@ public class Emitter {
 	
 	static Keyword LINE_KEY = Keyword.intern(null, "line");
 	static Keyword NS_KEY = Keyword.intern(null, "ns");
-    
+
+    static Keyword FORM_ID_KEY = Keyword.intern(null, "form-id");
+    static Keyword EMITTED_KEY = Keyword.intern(null, "emitted");
+
 	public static Var INSTRUMENTATION_ENABLE = Var.create(true).setDynamic();
 
     private static ArrayList<String> instrumentationOnlyPrefixes = new ArrayList();
 	private static ArrayList<String> instrumentationSkipPrefixes = new ArrayList();    
     private static Pattern instrumentationSkipRegex = null;
-    
+
+    private static boolean collectFormsEmissionsEnable=false;
+
     private static boolean fnCallInstrumentationEnable=true;
     private static boolean fnReturnInstrumentationEnable=true;
     private static boolean exprInstrumentationEnable=true;
@@ -190,6 +188,8 @@ public class Emitter {
 		boolean skip = !getInstrumentationEnable() || !instrument;
         return skip;
 	}
+    public static void setCollectFormsEmissionsEnable(boolean enable) {collectFormsEmissionsEnable=enable;}
+    public static boolean getCollectFormsEmissionsEnable() {return collectFormsEmissionsEnable;}
 
     //////////////////////////////
     // Instrumentation emission //
@@ -443,4 +443,87 @@ public class Emitter {
                 }
             }		
 	}
+
+
+    // Decompilation stuff
+
+    public static IPersistentMap getFormsEmissions() {
+        return (IPersistentMap) formsEmissions.deref();
+    }
+
+    public static void resetFormEmissions() {
+        formsEmissions.reset(RT.map());
+    }
+
+    private static void addEmitted(IPersistentMap m) {
+        Integer currFormId = (Integer) Compiler.FORM_ID.deref();
+        if(collectFormsEmissionsEnable && currFormId!=null) {
+            IPersistentMap mFinal = (IPersistentMap) RT.assoc(m, Keyword.intern(null, "coord"), Compiler.COORD.deref());
+            formsEmissions.swap(new AFn() {
+                @Override
+                public Object invoke(Object fem) {
+                    IPersistentMap formsEmittedM = (IPersistentMap) fem;
+                    IPersistentVector formEmittedV = (IPersistentVector) formsEmittedM.valAt(currFormId);
+                    if (formEmittedV == null) formEmittedV = RT.vector();
+                    return formsEmittedM.assoc(currFormId, RT.conj(formEmittedV, mFinal));
+                }
+            });
+        }
+    }
+    public static void collectEmitClass(final int access,
+                                       final String name,
+                                       final String signature,
+                                       final String superName,
+                                       final String[] interfaces) {
+
+        addEmitted(RT.map(
+                Keyword.intern("emitted","type"), Keyword.intern(null,"class"),
+                Keyword.intern("class","name"), name,
+                Keyword.intern("class","signature"), signature,
+                Keyword.intern("class","super-name"), superName,
+                Keyword.intern("class","interfaces"), interfaces));
+
+    }
+
+    public static void collectEmitMethod(  final int access,
+                                           final String name,
+                                           final String descriptor,
+                                           final String signature,
+                                           final String[] exceptions) {
+
+        addEmitted(RT.map(
+                Keyword.intern("emitted","type"), Keyword.intern(null,"method"),
+                Keyword.intern("method","name"), name,
+                Keyword.intern("method","descriptor"), descriptor,
+                Keyword.intern("method","signature"), signature,
+                Keyword.intern("method","exceptions"), exceptions
+                ));
+
+
+    }
+
+    public static void collectEmitInst(IPersistentMap op) {
+        addEmitted((IPersistentMap)RT.assoc(op, Keyword.intern("emitted","type"), Keyword.intern(null,"instruction")));
+    }
+
+    public static void collectEmitLabel(String lbl) {
+        addEmitted(RT.map(
+                Keyword.intern("emitted","type"), Keyword.intern(null,"label"),
+                Keyword.intern("label","name"), lbl
+        ));
+    }
+
+    public static void collectEmitVar(IPersistentMap varMap) {
+        addEmitted( (IPersistentMap) RT.assoc(varMap, Keyword.intern("emitted","type"), Keyword.intern(null,"var")));
+    }
+
+    public static void collectEmitField(IPersistentMap fieldMap) {
+        addEmitted((IPersistentMap) RT.assoc(fieldMap, Keyword.intern("emitted","type"), Keyword.intern(null,"field")));
+    }
+
 }
+
+// (clojure.storm.Emitter/addInstrumentationOnlyPrefix "dev") (ns dev) (defn sum [a b] (let [m {:x 100}] (+ a b (:x m)))) (clojure.storm.Emitter/getFormsEmissions)
+// (clojure.storm.Emitter/setCollectFormsEmissionsEnable true) (clojure.storm.Emitter/setCollectFormsEmissionsEnable false)
+//
+//
