@@ -144,7 +144,7 @@
         interfaces (map the-class implements)
         supers (cons super interfaces)
         ctor-sig-map (or constructors (zipmap (ctor-sigs super) (ctor-sigs super)))
-        cv (clojure.lang.Compiler/classWriter)
+        cv (clojure.lang.Compiler/classWriter false)
         cname (. name (replace "." "/"))
         pkg-name name
         impl-pkg-name (str impl-ns)
@@ -673,7 +673,7 @@
     (throw
       (IllegalArgumentException. "Interface methods must not contain '-'")))
   (let [iname (.replace (str name) "." "/")
-        cv (clojure.lang.Compiler/classWriter)]
+        cv (clojure.lang.Compiler/classWriter false)]
     (. cv visit Opcodes/V1_8 (+ Opcodes/ACC_PUBLIC 
                                 Opcodes/ACC_ABSTRACT
                                 Opcodes/ACC_INTERFACE)

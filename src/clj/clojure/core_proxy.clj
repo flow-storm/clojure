@@ -46,7 +46,7 @@
           [(Integer/toHexString (hash inames))])))))
 
 (defn- generate-proxy [^Class super interfaces]
-  (let [cv (clojure.lang.Compiler/classWriter)
+  (let [cv (clojure.lang.Compiler/classWriter true)
         pname (proxy-name super interfaces)
         cname (.replace pname \. \/) ;(str "clojure/lang/" (gensym "Proxy__"))
         ctype (. Type (getObjectType cname))

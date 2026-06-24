@@ -3,11 +3,7 @@ package clojure.storm;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import clojure.lang.IFn;
-import clojure.lang.IPersistentMap;
-import clojure.lang.IPersistentVector;
-import clojure.lang.Keyword;
-import clojure.lang.PersistentVector;
+import clojure.lang.*;
 
 public class Tracer {
 	
@@ -16,19 +12,15 @@ public class Tracer {
 	private static IFn traceFnUnwindFn = null;
 	private static IFn traceExprFn = null;
 	private static IFn traceBindFn = null;
-    
-    // TODO: this are depracated, remove when it is safe
-    private static Keyword TRACE_FN_CALL_FN_KEY = Keyword.intern(null, "trace-fn-call-fn-key");
-	private static Keyword TRACE_FN_RETURN_FN_KEY = Keyword.intern(null, "trace-fn-return-fn-key");
-	private static Keyword TRACE_EXPR_FN_KEY = Keyword.intern(null, "trace-expr-fn-key");
-	private static Keyword TRACE_BIND_FN_KEY = Keyword.intern(null, "trace-bind-fn-key");
-    
+
+    private static IFn onFormBytecodeEmittedFn = null;
+        
     private static Keyword TRACE_FN_CALL_FN = Keyword.intern(null, "trace-fn-call-fn");
 	private static Keyword TRACE_FN_RETURN_FN = Keyword.intern(null, "trace-fn-return-fn");
 	private static Keyword TRACE_FN_UNWIND_FN = Keyword.intern(null, "trace-fn-unwind-fn");
 	private static Keyword TRACE_EXPR_FN = Keyword.intern(null, "trace-expr-fn");
 	private static Keyword TRACE_BIND_FN = Keyword.intern(null, "trace-bind-fn");
-    
+
     static public void traceFnCall(Object[] fnArgs, String fnNs, String fnName, int formId) {
 		if (traceFnCallFn != null)
 			traceFnCallFn.invoke(null, fnNs, fnName, fnArgs, formId);
@@ -70,24 +62,7 @@ public class Tracer {
 		FormRegistry.registerForm(formId, new FormObject(formId, nsName, sourceFile, line, form));
     }
 
-	public static void setTraceFnsCallbacks(IPersistentMap callbacks) {
-        // We need to support two sets of keys for some time because I messed up the key names
-        // and changing them will make some versions of FlowStorm that relays on the old keys to stop working
-        
-        // Deprecated keys
-        if (callbacks.valAt(TRACE_FN_CALL_FN_KEY) != null)
-            traceFnCallFn = (IFn) callbacks.valAt(TRACE_FN_CALL_FN_KEY);
-
-        if (callbacks.valAt(TRACE_FN_RETURN_FN_KEY) != null)
-            traceFnReturnFn = (IFn) callbacks.valAt(TRACE_FN_RETURN_FN_KEY);
-
-        if (callbacks.valAt(TRACE_EXPR_FN_KEY) != null)
-            traceExprFn = (IFn) callbacks.valAt(TRACE_EXPR_FN_KEY);
-
-        if (callbacks.valAt(TRACE_BIND_FN_KEY) != null)
-            traceBindFn = (IFn) callbacks.valAt(TRACE_BIND_FN_KEY);
-        
-        // New keys
+	public static void setTraceFnsCallbacks(IPersistentMap callbacks) {        
         
         if (callbacks.valAt(TRACE_FN_CALL_FN) != null)
             traceFnCallFn = (IFn) callbacks.valAt(TRACE_FN_CALL_FN);
@@ -105,5 +80,15 @@ public class Tracer {
             traceBindFn = (IFn) callbacks.valAt(TRACE_BIND_FN);
         
 	}
+
+    public static void setOnFormBytecodeEmitted(IFn f) {
+        onFormBytecodeEmittedFn = f;
+    }
+
+    public static void signalFormBytecodeEmitted(Integer formId) {
+        if(onFormBytecodeEmittedFn!=null) {
+            onFormBytecodeEmittedFn.invoke(formId, Emitter.getFormEmissions());
+        }
+    }
 
 }
