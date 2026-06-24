@@ -287,7 +287,7 @@ public class ClassWriter extends ClassVisitor {
   // -----------------------------------------------------------------------------------------------
 
   @Override
-  public final void visit(
+  public void visit(
           final int version,
           final int access,
           final String name,
@@ -314,7 +314,7 @@ public class ClassWriter extends ClassVisitor {
   }
 
   @Override
-  public final void visitSource(final String file, final String debug) {
+  public void visitSource(final String file, final String debug) {
     if (file != null) {
       sourceFileIndex = symbolTable.addConstantUtf8(file);
     }
@@ -324,7 +324,7 @@ public class ClassWriter extends ClassVisitor {
   }
 
   @Override
-  public final ModuleVisitor visitModule(
+  public ModuleVisitor visitModule(
           final String name, final int access, final String version) {
     return moduleWriter =
             new ModuleWriter(
@@ -340,7 +340,7 @@ public class ClassWriter extends ClassVisitor {
   }
 
   @Override
-  public final void visitOuterClass(
+  public void visitOuterClass(
           final String owner, final String name, final String descriptor) {
     enclosingClassIndex = symbolTable.addConstantClass(owner).index;
     if (name != null && descriptor != null) {
@@ -349,7 +349,13 @@ public class ClassWriter extends ClassVisitor {
   }
 
   @Override
-  public final AnnotationVisitor visitAnnotation(final String descriptor, final boolean visible) {
+  public AnnotationVisitor visitAnnotation(final String descriptor, final boolean visible) {
+    // Create a ByteVector to hold an 'annotation' JVMS structure.
+    // See https://docs.oracle.com/javase/specs/jvms/se9/html/jvms-4.html#jvms-4.7.16.
+    ByteVector annotation = new ByteVector();
+    // Write type_index and reserve space for num_element_value_pairs.
+    annotation.putShort(symbolTable.addConstantUtf8(descriptor)).putShort(0);
+
     if (visible) {
       return lastRuntimeVisibleAnnotation =
               AnnotationWriter.create(symbolTable, descriptor, lastRuntimeVisibleAnnotation);
@@ -360,8 +366,17 @@ public class ClassWriter extends ClassVisitor {
   }
 
   @Override
-  public final AnnotationVisitor visitTypeAnnotation(
+  public AnnotationVisitor visitTypeAnnotation(
           final int typeRef, final TypePath typePath, final String descriptor, final boolean visible) {
+    // Create a ByteVector to hold a 'type_annotation' JVMS structure.
+    // See https://docs.oracle.com/javase/specs/jvms/se9/html/jvms-4.html#jvms-4.7.20.
+    ByteVector typeAnnotation = new ByteVector();
+    // Write target_type, target_info, and target_path.
+    TypeReference.putTarget(typeRef, typeAnnotation);
+    TypePath.put(typePath, typeAnnotation);
+    // Write type_index and reserve space for num_element_value_pairs.
+    typeAnnotation.putShort(symbolTable.addConstantUtf8(descriptor)).putShort(0);
+
     if (visible) {
       return lastRuntimeVisibleTypeAnnotation =
               AnnotationWriter.create(
@@ -374,7 +389,7 @@ public class ClassWriter extends ClassVisitor {
   }
 
   @Override
-  public final void visitAttribute(final Attribute attribute) {
+  public void visitAttribute(final Attribute attribute) {
     // Store the attributes in the <i>reverse</i> order of their visit by this method.
     attribute.nextAttribute = firstAttribute;
     firstAttribute = attribute;
@@ -390,16 +405,7 @@ public class ClassWriter extends ClassVisitor {
   }
 
   @Override
-  public final void visitPermittedSubclass(final String permittedSubclass) {
-    if (permittedSubclasses == null) {
-      permittedSubclasses = new ByteVector();
-    }
-    ++numberOfPermittedSubclasses;
-    permittedSubclasses.putShort(symbolTable.addConstantClass(permittedSubclass).index);
-  }
-
-  @Override
-  public final void visitInnerClass(
+  public void visitInnerClass(
           final String name, final String outerName, final String innerName, final int access) {
     if (innerClasses == null) {
       innerClasses = new ByteVector();
@@ -437,7 +443,7 @@ public class ClassWriter extends ClassVisitor {
   }
 
   @Override
-  public final FieldVisitor visitField(
+  public FieldVisitor visitField(
           final int access,
           final String name,
           final String descriptor,
@@ -454,7 +460,7 @@ public class ClassWriter extends ClassVisitor {
   }
 
   @Override
-  public final MethodVisitor visitMethod(
+  public MethodVisitor visitMethod(
           final int access,
           final String name,
           final String descriptor,
@@ -471,7 +477,7 @@ public class ClassWriter extends ClassVisitor {
   }
 
   @Override
-  public final void visitEnd() {
+  public void visitEnd() {
     // Nothing to do.
   }
 

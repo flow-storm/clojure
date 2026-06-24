@@ -22,7 +22,7 @@ The important bits here are :
 
 ## Hooking into ClojureStorm
 
-Instructions here apply to ClojureStorm >= `1.11.1-19` and `1.12.0-alpha4_14`
+### Execution tracing hooks
 
 ```clojure
 (clojure.storm.Tracer/setTraceFnsCallbacks
@@ -59,6 +59,22 @@ dev=> (sum 4 5)
 "fn-return" 9 "" -1879070944
 
 9
+```
+
+### Bytecode emission collection hooks
+
+```clojure
+(clojure.storm.Tracer/setOnFormBytecodeEmitted (fn [form-id emissions-vec] (prn form-id emissions-vec)))
+```
+
+After that hook, for every form marked with `^:clojure.storm/collect-emitted` will get its bytecode collected and sent to
+the registered callback above.
+
+Like:
+
+```clojure
+^:clojure.storm/collect-emitted
+(defn sum [a b] (+ a b))
 ```
 
 ## Forms and coordinates

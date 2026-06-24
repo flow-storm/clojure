@@ -13,7 +13,7 @@ import clojure.asm.Type;
 import clojure.asm.Label;
 import clojure.asm.commons.GeneratorAdapter;
 import clojure.asm.commons.Method;
-import clojure.lang.AFn;
+import clojure.lang.*;
 import clojure.lang.Compiler;
 import clojure.lang.Compiler.BindingInit;
 import clojure.lang.Compiler.FnExpr;
@@ -21,36 +21,25 @@ import clojure.lang.Compiler.NewInstanceExpr;
 import clojure.lang.Compiler.FnMethod;
 import clojure.lang.Compiler.LocalBinding;
 import clojure.lang.Compiler.ObjExpr;
-import clojure.lang.IFn;
-import clojure.lang.IPersistentMap;
-import clojure.lang.IPersistentVector;
-import clojure.lang.Keyword;
-import clojure.lang.Namespace;
-import clojure.lang.PersistentVector;
-import clojure.lang.RT;
-import clojure.lang.Symbol;
-import clojure.lang.Var;
 
 public class Emitter {
+
+    static final public Atom formEmissions = new Atom(RT.vector());
 
     private static  Logger logger = Logger.getLogger("clojure.storm");
     
 	final static Type TRACER_CLASS_TYPE = Type.getType(Tracer.class);
-	final static Type OBJECT_CLASS_TYPE = Type.getType(Object.class);    
-	final static Type INT_TYPE = Type.getType(int.class);
-	final static Type INTEGER_CLASS_TYPE = Type.getType(Integer.class);
-	final static Type LONG_CLASS_TYPE = Type.getType(Long.class);
-	final static Type DOUBLE_CLASS_TYPE = Type.getType(Double.class);
 	
 	static Keyword LINE_KEY = Keyword.intern(null, "line");
-	static Keyword NS_KEY = Keyword.intern(null, "ns");
-    
+
 	public static Var INSTRUMENTATION_ENABLE = Var.create(true).setDynamic();
+    public static Var COLLECT_EMITTED = Var.create(false).setDynamic();
 
     private static ArrayList<String> instrumentationOnlyPrefixes = new ArrayList();
 	private static ArrayList<String> instrumentationSkipPrefixes = new ArrayList();    
     private static Pattern instrumentationSkipRegex = null;
-    
+
+
     private static boolean fnCallInstrumentationEnable=true;
     private static boolean fnReturnInstrumentationEnable=true;
     private static boolean exprInstrumentationEnable=true;
@@ -190,6 +179,7 @@ public class Emitter {
 		boolean skip = !getInstrumentationEnable() || !instrument;
         return skip;
 	}
+
 
     //////////////////////////////
     // Instrumentation emission //
@@ -443,4 +433,34 @@ public class Emitter {
                 }
             }		
 	}
+
+
+    // Byte emission collection stuff
+
+    public static IPersistentVector getFormEmissions() {
+        return (IPersistentVector) formEmissions.deref();
+    }
+    public static void resetFormEmissions() {
+        formEmissions.reset(RT.vector());
+    }
+
+    public static void addEmitted(IPersistentMap m) {
+        Integer currFormId = (Integer) Compiler.FORM_ID.deref();
+        Boolean collectEmitted = (Boolean) COLLECT_EMITTED.deref();
+        if(collectEmitted && currFormId!=null) {
+            IPersistentVector currCoord = (IPersistentVector) Compiler.COORD.deref();
+            IPersistentMap mFinal = (IPersistentMap) RT.assoc(m, Keyword.intern(null, "coord"), currCoord);
+            formEmissions.swap(new AFn() {
+                @Override
+                public Object invoke(Object fems) {
+                    IPersistentVector formEmittedV = (IPersistentVector) fems;
+                    if (formEmittedV == null) formEmittedV = RT.vector();
+                    return RT.conj(formEmittedV, mFinal);
+                }
+            });
+        }
+    }
+  
 }
+
+// (clojure.storm.Tracer/setOnFormBytecodeEmitted (fn [form-id emissions-vec] (prn form-id emissions-vec)))

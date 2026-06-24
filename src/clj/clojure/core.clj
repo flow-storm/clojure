@@ -4724,7 +4724,7 @@
                               (concat (map (fn* [c] `(assert ~c)) pre) 
                                       body)
                               body)]
-                   (maybe-destructured params body)))
+                   (with-meta (maybe-destructured params body) (meta sig))))
           new-sigs (map psig sigs)]
       (with-meta
         (if name
