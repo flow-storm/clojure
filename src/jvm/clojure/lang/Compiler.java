@@ -5034,7 +5034,7 @@ static public class ObjExpr implements Expr{
 		//with name current_ns.defname[$letname]+
 		//anonymous fns get names fn__id
 		//derived from AFn/RestFn
-	        ClassWriter cw = classWriter();
+	        ClassWriter cw = classWriter(true);
 //		ClassWriter cw = new ClassWriter(0);
 		ClassVisitor cv = cw;
 //		ClassVisitor cv = new TraceClassVisitor(new CheckClassAdapter(cw), new PrintWriter(System.out));
@@ -8073,8 +8073,7 @@ public static Object eval(Object form, boolean freshLoader) {
         HashSet<String> formCoords = null;
         Object origForm = form;
 
-        if (form != null &&
-				!Emitter.skipInstrumentation(munge(currentNS().toString()))) {
+        if (form != null) {
 			if (!Utils.isAnnoyingLeinNreplForm(origForm)) {
 				// Calculate the form id
 				formId = form.hashCode();
@@ -8087,7 +8086,8 @@ public static Object eval(Object form, boolean freshLoader) {
 				// they belong to
 				bindings = (IPersistentMap) RT.assoc(bindings, FORM_ID, formId);
 				bindings = (IPersistentMap) RT.assoc(bindings, FORM_COORDS, formCoords);                
-				bindings = (IPersistentMap) RT.assoc(bindings, COORD, "");
+				bindings = (IPersistentMap) RT.assoc(bindings, COORD, RT.vector());
+                Emitter.resetFormEmissions();
 			} else {
 				System.out.println("ClojureStorm: skipping lein initialization form instrumentation being evaluated in " + currentNS().toString());
 			}
@@ -8123,6 +8123,7 @@ public static Object eval(Object form, boolean freshLoader) {
 					                                "eval" + RT.nextID());
 				IFn fn = (IFn) fexpr.eval();
 				maybeRegisterForm(formId,(String)file, line,origForm, formCoords);
+                if(Emitter.getCollectFormsEmissionsEnable()) Tracer.signalFormBytecodeEmitted(formId);
 				return fn.invoke();
 				}
 			else
@@ -8130,6 +8131,7 @@ public static Object eval(Object form, boolean freshLoader) {
 				Expr expr = analyze(C.EVAL, form);
 				Object evalResult = expr.eval();
 				maybeRegisterForm(formId,(String)file, line,origForm, formCoords);
+                if(Emitter.getCollectFormsEmissionsEnable()) Tracer.signalFormBytecodeEmitted(formId);
 				return evalResult;
 				}
 			} catch (Exception e)
@@ -8766,7 +8768,7 @@ public static Object compile(Reader rdr, String sourcePath, String sourceName) t
 		                  + RT.LOADER_SUFFIX;
 
 		objx.objtype = Type.getObjectType(objx.internalName);
-		ClassWriter cw = classWriter();
+		ClassWriter cw = classWriter(false);
 		ClassVisitor cv = cw;
 		cv.visit(V1_8, ACC_PUBLIC + ACC_SUPER, objx.internalName, null, "java/lang/Object", null);
 
@@ -8796,8 +8798,7 @@ public static Object compile(Reader rdr, String sourcePath, String sourceName) t
             Integer formId = null;
             HashSet<String> formCoords = null;
             boolean stormPushedBindings = false;
-            if (r != null &&
-				!Emitter.skipInstrumentation(munge(currentNS().toString()))) {
+            if (r != null) {
                 if (!Utils.isAnnoyingLeinNreplForm(origForm)) {
                     // Calculate the form id
                     formId = r.hashCode();
@@ -8811,7 +8812,7 @@ public static Object compile(Reader rdr, String sourcePath, String sourceName) t
                     Var.pushThreadBindings(
                         RT.mapUniqueKeys(FORM_ID, formId,
                             FORM_COORDS, formCoords,
-                            COORD, ""));
+                            COORD, RT.vector()));
                     stormPushedBindings = true;
                     } else {
                     System.out.println("ClojureStorm: skipping lein initialization form instrumentation being evaluated in " + currentNS().toString());
@@ -9130,7 +9131,7 @@ static public class NewInstanceExpr extends ObjExpr{
 	 * Unmunge the name (using a magic prefix) on any code gen for classes
 	 */
 	static Class compileStub(String superName, NewInstanceExpr ret, String[] interfaceNames, Object frm){
-	    ClassWriter cw = classWriter();
+	    ClassWriter cw = classWriter(false);
 	    ClassVisitor cv = cw;
 		cv.visit(V1_8, ACC_PUBLIC + ACC_SUPER, COMPILE_STUB_PREFIX + "/" + ret.internalName,
 		         null,superName,interfaceNames);
@@ -10139,17 +10140,20 @@ public static class CaseExpr implements Expr, MaybePrimitiveExpr{
 
 static IPersistentCollection emptyVarCallSites(){return PersistentHashSet.EMPTY;}
 
-    static public ClassWriter classWriter() {
-	return new InstCollectingClassVisitor(ClassWriter.COMPUTE_MAXS + ClassWriter.COMPUTE_FRAMES) {
-			protected String getCommonSuperClass (final String type1, final String type2) {
-				return "java/lang/Object";
-//		    	if (!(type1.equals("java/lang/Object") || type2.equals("java/lang/Object"))) {
-//					RT.errPrintWriter()
-//							.format("stack map frame \"%s\" and \"%s\" on %s:%d:%d \n",
-//									type1, type2,
-//									SOURCE_PATH.deref(), LINE.deref(), COLUMN.deref());
-//				}
-		    }
-		};
+    static public ClassWriter classWriter(boolean collector) {
+    if(collector){
+        return new InstCollectingClassVisitor(ClassWriter.COMPUTE_MAXS + ClassWriter.COMPUTE_FRAMES) {
+            protected String getCommonSuperClass (final String type1, final String type2) {
+                return "java/lang/Object";
+            }
+        };
+    }else{
+        return new ClassWriter(ClassWriter.COMPUTE_MAXS + ClassWriter.COMPUTE_FRAMES) {
+            protected String getCommonSuperClass (final String type1, final String type2) {
+                return "java/lang/Object";
+            }
+        };
     }
+
+}
 }

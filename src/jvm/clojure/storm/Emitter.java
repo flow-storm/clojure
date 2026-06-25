@@ -24,7 +24,7 @@ import clojure.lang.Compiler.ObjExpr;
 
 public class Emitter {
 
-    static final public Atom formsEmissions = new Atom(RT.map());
+    static final public Atom formEmissions = new Atom(RT.vector());
 
     private static  Logger logger = Logger.getLogger("clojure.storm");
     
@@ -188,7 +188,8 @@ public class Emitter {
 		boolean skip = !getInstrumentationEnable() || !instrument;
         return skip;
 	}
-    public static void setCollectFormsEmissionsEnable(boolean enable) {collectFormsEmissionsEnable=enable;}
+    
+    public static void setCollectFormsEmissionsEnable(Boolean enable) {collectFormsEmissionsEnable=enable;}
     public static boolean getCollectFormsEmissionsEnable() {return collectFormsEmissionsEnable;}
 
     //////////////////////////////
@@ -447,25 +448,23 @@ public class Emitter {
 
     // Decompilation stuff
 
-    public static IPersistentMap getFormsEmissions() {
-        return (IPersistentMap) formsEmissions.deref();
+    public static IPersistentVector getFormEmissions() {
+        return (IPersistentVector) formEmissions.deref();
     }
-
     public static void resetFormEmissions() {
-        formsEmissions.reset(RT.map());
+        formEmissions.reset(RT.vector());
     }
 
     private static void addEmitted(IPersistentMap m) {
         Integer currFormId = (Integer) Compiler.FORM_ID.deref();
         if(collectFormsEmissionsEnable && currFormId!=null) {
             IPersistentMap mFinal = (IPersistentMap) RT.assoc(m, Keyword.intern(null, "coord"), Compiler.COORD.deref());
-            formsEmissions.swap(new AFn() {
+            formEmissions.swap(new AFn() {
                 @Override
-                public Object invoke(Object fem) {
-                    IPersistentMap formsEmittedM = (IPersistentMap) fem;
-                    IPersistentVector formEmittedV = (IPersistentVector) formsEmittedM.valAt(currFormId);
+                public Object invoke(Object fems) {
+                    IPersistentVector formEmittedV = (IPersistentVector) fems;
                     if (formEmittedV == null) formEmittedV = RT.vector();
-                    return formsEmittedM.assoc(currFormId, RT.conj(formEmittedV, mFinal));
+                    return RT.conj(formEmittedV, mFinal);
                 }
             });
         }
@@ -523,7 +522,5 @@ public class Emitter {
 
 }
 
-// (clojure.storm.Emitter/addInstrumentationOnlyPrefix "dev") (ns dev) (defn sum [a b] (let [m {:x 100}] (+ a b (:x m)))) (clojure.storm.Emitter/getFormsEmissions)
-// (clojure.storm.Emitter/setCollectFormsEmissionsEnable true) (clojure.storm.Emitter/setCollectFormsEmissionsEnable false)
-//
-//
+// (clojure.storm.Emitter/addInstrumentationOnlyPrefix "dev") (clojure.storm.Tracer/setOnFormBytecodeEmitted (fn [form-id emissions-vec] (prn form-id emissions-vec)))
+// (ns dev) (clojure.storm.Emitter/setCollectFormsEmissionsEnable true)  (defn sum [a b] (let [m {:x 100}] (+ a b (:x m))))
