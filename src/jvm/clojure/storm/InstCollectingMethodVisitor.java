@@ -7,6 +7,7 @@ import clojure.lang.RT;
 import clojure.storm.OpcodesUtils;
 
 import java.util.Arrays;
+import java.util.stream.Collectors;
 
 public class InstCollectingMethodVisitor extends MethodVisitor {
 
@@ -171,8 +172,8 @@ public class InstCollectingMethodVisitor extends MethodVisitor {
                 Keyword.intern("instruction", "op"), Keyword.intern(null, "table-switch"),
                 Keyword.intern(null, "min"), min,
                 Keyword.intern(null, "max"), max,
-                Keyword.intern(null, "dflt"), dflt,
-                Keyword.intern(null, "labels"), labels
+                Keyword.intern(null, "default-label"), dflt,
+                Keyword.intern(null, "labels"), Arrays.stream(labels).map(Object::toString).collect(Collectors.toList())
         ));
         orig.visitTableSwitchInsn(min,max,dflt,labels);
         }
@@ -181,9 +182,9 @@ public class InstCollectingMethodVisitor extends MethodVisitor {
     public void visitLookupSwitchInsn(final Label dflt, final int[] keys, final Label[] labels) {
         Emitter.collectEmitInst(RT.map(
                 Keyword.intern("instruction", "op"), Keyword.intern(null, "lookup-switch"),
-                Keyword.intern(null, "dflt"), dflt,
+                Keyword.intern(null, "default-label"), dflt,
                 Keyword.intern(null, "keys"), keys,
-                Keyword.intern(null, "labels"), labels
+                Keyword.intern(null, "labels"), Arrays.stream(labels).map(Object::toString).collect(Collectors.toList())
         ));
         orig.visitLookupSwitchInsn(dflt, keys, labels);
         }
@@ -218,8 +219,8 @@ public class InstCollectingMethodVisitor extends MethodVisitor {
     @Override
     public void visitLocalVariable(final String name, final String descriptor, final String signature, final Label start, final Label end, final int index) {
         Emitter.collectEmitVar(RT.map(
-                Keyword.intern(null, "name"), start.toString(),
-                Keyword.intern(null, "descriptor"), end.toString(),
+                Keyword.intern(null, "name"), name,
+                Keyword.intern(null, "descriptor"), descriptor,
                 Keyword.intern(null, "signature"), signature,
                 Keyword.intern(null, "start-label"), start.toString(),
                 Keyword.intern(null, "end-label"), end.toString(),
@@ -229,11 +230,7 @@ public class InstCollectingMethodVisitor extends MethodVisitor {
         orig.visitLocalVariable(name,descriptor,signature,start,end,index);
         }
 
-    @Override
-    public AnnotationVisitor visitLocalVariableAnnotation(final int typeRef, final TypePath typePath, final Label[] start, final Label[] end, final int[] index, final String descriptor, final boolean visible) {
-        return orig.visitLocalVariableAnnotation(typeRef,typePath, start, end, index,descriptor,visible);
-        }
-
+    
     @Override
     public void visitLineNumber(final int line, final Label start) {
         orig.visitLineNumber(line,start);
