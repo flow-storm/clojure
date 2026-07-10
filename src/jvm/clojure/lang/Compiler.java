@@ -238,6 +238,7 @@ static final public Var FORM_COORDS = Var.create(null).setDynamic();
 static final public Var COORD = Var.create(null).setDynamic();
 static final public Var FN_TRACE_SYM = Var.create(null).setDynamic();
 static final public Keyword STORM_COORDS_EMITTED_COORDS_KEY = Keyword.intern("clojure.storm", "emitted-coords");
+static final public Keyword STORM_COLLECT_EMITTED_KEY = Keyword.intern("clojure.storm", "collect-emitted");
 static final public Keyword SKIP_TRACE_KEY = Keyword.intern("clojure.storm", "skip");
 static final public Keyword FN_TRACE_SYM_KEY = Keyword.intern("clojure.storm", "fn-trace-sym");
 	
@@ -8074,6 +8075,7 @@ public static Object eval(Object form, boolean freshLoader) {
         // ------------------------------------------------------------------------
 
         Integer formId = null;
+        Boolean collectEmittedMeta = false;
         HashSet<String> formCoords = null;
         Object origForm = form;
 
@@ -8083,6 +8085,8 @@ public static Object eval(Object form, boolean freshLoader) {
 				formId = form.hashCode();
 				formCoords = new HashSet();
 
+                collectEmittedMeta = Boolean.TRUE.equals(RT.get(RT.meta(form), STORM_COLLECT_EMITTED_KEY));
+
 				// Tag the coords
 				form = Utils.tagStormCoord(form);
 
@@ -8091,6 +8095,7 @@ public static Object eval(Object form, boolean freshLoader) {
 				bindings = (IPersistentMap) RT.assoc(bindings, FORM_ID, formId);
 				bindings = (IPersistentMap) RT.assoc(bindings, FORM_COORDS, formCoords);                
 				bindings = (IPersistentMap) RT.assoc(bindings, COORD, RT.vector());
+                bindings = (IPersistentMap) RT.assoc(bindings, Emitter.COLLECT_EMITTED, collectEmittedMeta);
                 Emitter.resetFormEmissions();
 			} else {
 				System.out.println("ClojureStorm: skipping lein initialization form instrumentation being evaluated in " + currentNS().toString());
@@ -8127,7 +8132,7 @@ public static Object eval(Object form, boolean freshLoader) {
 					                                "eval" + RT.nextID());
 				IFn fn = (IFn) fexpr.eval();
 				maybeRegisterForm(formId,(String)file, line,origForm, formCoords);
-                if(Emitter.getCollectFormsEmissionsEnable()) Tracer.signalFormBytecodeEmitted(formId);
+                if(collectEmittedMeta) Tracer.signalFormBytecodeEmitted(formId);
 				return fn.invoke();
 				}
 			else
@@ -8135,7 +8140,7 @@ public static Object eval(Object form, boolean freshLoader) {
 				Expr expr = analyze(C.EVAL, form);
 				Object evalResult = expr.eval();
 				maybeRegisterForm(formId,(String)file, line,origForm, formCoords);
-                if(Emitter.getCollectFormsEmissionsEnable()) Tracer.signalFormBytecodeEmitted(formId);
+                if(collectEmittedMeta) Tracer.signalFormBytecodeEmitted(formId);
 				return evalResult;
 				}
 			} catch (Exception e)

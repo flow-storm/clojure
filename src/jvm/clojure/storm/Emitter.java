@@ -42,12 +42,12 @@ public class Emitter {
     static Keyword EMITTED_KEY = Keyword.intern(null, "emitted");
 
 	public static Var INSTRUMENTATION_ENABLE = Var.create(true).setDynamic();
+    public static Var COLLECT_EMITTED = Var.create(false).setDynamic();
 
     private static ArrayList<String> instrumentationOnlyPrefixes = new ArrayList();
 	private static ArrayList<String> instrumentationSkipPrefixes = new ArrayList();    
     private static Pattern instrumentationSkipRegex = null;
 
-    private static boolean collectFormsEmissionsEnable=false;
 
     private static boolean fnCallInstrumentationEnable=true;
     private static boolean fnReturnInstrumentationEnable=true;
@@ -188,9 +188,7 @@ public class Emitter {
 		boolean skip = !getInstrumentationEnable() || !instrument;
         return skip;
 	}
-    
-    public static void setCollectFormsEmissionsEnable(Boolean enable) {collectFormsEmissionsEnable=enable;}
-    public static boolean getCollectFormsEmissionsEnable() {return collectFormsEmissionsEnable;}
+
 
     //////////////////////////////
     // Instrumentation emission //
@@ -457,7 +455,8 @@ public class Emitter {
 
     private static void addEmitted(IPersistentMap m) {
         Integer currFormId = (Integer) Compiler.FORM_ID.deref();
-        if(collectFormsEmissionsEnable && currFormId!=null) {
+        Boolean collectEmitted = (Boolean) COLLECT_EMITTED.deref();
+        if(collectEmitted && currFormId!=null) {
             IPersistentMap mFinal = (IPersistentMap) RT.assoc(m, Keyword.intern(null, "coord"), Compiler.COORD.deref());
             formEmissions.swap(new AFn() {
                 @Override
@@ -522,5 +521,5 @@ public class Emitter {
 
 }
 
-// (clojure.storm.Emitter/addInstrumentationOnlyPrefix "dev") (clojure.storm.Tracer/setOnFormBytecodeEmitted (fn [form-id emissions-vec] (prn form-id emissions-vec)))
-// (ns dev) (clojure.storm.Emitter/setCollectFormsEmissionsEnable true)  (defn sum [a b] (let [m {:x 100}] (+ a b (:x m))))
+// (clojure.storm.Tracer/setOnFormBytecodeEmitted (fn [form-id emissions-vec] (prn form-id emissions-vec)))
+//  ^:clojure.storm/collect-emitted (defn sum [a b] (let [m {:x 100}] (+ a b (:x m))))
