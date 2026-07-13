@@ -303,14 +303,28 @@ static public Object getCompilerOption(Keyword k){
                 Symbol.intern("*compiler-options*"), compilerOptions).setDynamic();
     }
 
+    static Object elideStormMeta(Object m) {
+        // Always elide Storm coordinates meta, and if storm coordinates where the only thing
+        // added leave meta as null. If not we are going to endup with an empty map as meta
+        // that wasn't there in the first place
+
+        ISeq keys = RT.keys(m);
+        for(ISeq s = RT.seq(keys); s != null; s = s.next()) {
+            Object k = s.first();
+            if(k instanceof Keyword && ((Keyword)k).getNamespace() != null && ((Keyword)k).getNamespace().equals("clojure.storm")){
+                m = RT.dissoc(m, k);
+            }
+        }
+
+        if (RT.count(m) == 0) m = null;
+
+        return m;
+    }
+
     static Object elideMeta(Object m){
         Collection<Object> elides = (Collection<Object>) getCompilerOption(elideMetaKey);
 
-		// Always elide Storm coordinates meta, and if storm coordinates where the only thing
-        // added leave meta as null. If not we are going to endup with an empty map as meta
-        // that wasn't there in the first place
-		m = RT.dissoc(m, LispReader.COORD_KEY);
-        if (RT.count(m) == 0) m = null;
+        m = elideStormMeta(m);
 		
         if(elides != null)
             {
@@ -3664,10 +3678,11 @@ public static class MapExpr implements Expr{
 	public final IPersistentVector keyvals;
 	final static Method mapMethod = Method.getMethod("clojure.lang.IPersistentMap map(Object[])");
 	final static Method mapUniqueKeysMethod = Method.getMethod("clojure.lang.IPersistentMap mapUniqueKeys(Object[])");
+    public IPersistentVector coord;
 
-
-	public MapExpr(IPersistentVector keyvals){
+	public MapExpr(IPersistentVector keyvals, IPersistentVector coord){
 		this.keyvals = keyvals;
+        this.coord = coord;
 	}
 
 	public Object eval() {
@@ -3678,6 +3693,7 @@ public static class MapExpr implements Expr{
 	}
 
 	public void emit(C context, ObjExpr objx, GeneratorAdapter gen){
+        Var.pushThreadBindings(RT.map(COORD, coord));
 		boolean allKeysConstant = true;
 		boolean allConstantKeysUnique = true;
 		IPersistentSet constantKeys = PersistentHashSet.EMPTY;
@@ -3702,6 +3718,7 @@ public static class MapExpr implements Expr{
 			gen.invokeStatic(RT_TYPE, mapMethod);
 		if(context == C.STATEMENT)
 			gen.pop();
+        Var.popThreadBindings();
 	}
 
 	public boolean hasJavaClass() {
@@ -3713,12 +3730,13 @@ public static class MapExpr implements Expr{
 	}
 
 
-	static public Expr parse(C context, IPersistentMap form) {
+	static public Expr parse(C context, IPersistentMap form) {        
 		IPersistentVector keyvals = PersistentVector.EMPTY;
 		boolean keysConstant = true;
 		boolean valsConstant = true;
 		boolean allConstantKeysUnique = true;
 		IPersistentSet constantKeys = PersistentHashSet.EMPTY;
+
 		for(ISeq s = RT.seq(form); s != null; s = s.next())
 			{
 			IMapEntry e = (IMapEntry) s.first();
@@ -3740,10 +3758,10 @@ public static class MapExpr implements Expr{
 				valsConstant = false;
 			}
 
-		Expr ret = new MapExpr(keyvals);
+		Expr ret = new MapExpr(keyvals, Utils.coordOf(form));
 		if(form instanceof IObj && ((IObj) form).meta() != null)
 			return new MetaExpr(ret, MapExpr
-					.parse(context == C.EVAL ? context : C.EXPRESSION, ((IObj) form).meta()));
+					.parse(context == C.EVAL ? context : C.EXPRESSION, (IPersistentMap) elideStormMeta(((IObj) form).meta())));
 		else if(keysConstant)
 			{
 			// TBD: Add more detail to exception thrown below.
@@ -3769,11 +3787,13 @@ public static class MapExpr implements Expr{
 
 public static class SetExpr implements Expr{
 	public final IPersistentVector keys;
+    public IPersistentVector coord;
 	final static Method setMethod = Method.getMethod("clojure.lang.IPersistentSet set(Object[])");
 
 
-	public SetExpr(IPersistentVector keys){
+	public SetExpr(IPersistentVector keys, IPersistentVector coord){
 		this.keys = keys;
+        this.coord = coord;
 	}
 
 	public Object eval() {
@@ -3784,10 +3804,12 @@ public static class SetExpr implements Expr{
 	}
 
 	public void emit(C context, ObjExpr objx, GeneratorAdapter gen){
+        Var.pushThreadBindings(RT.map(COORD, coord));
 		MethodExpr.emitArgsAsArray(keys, objx, gen);
 		gen.invokeStatic(RT_TYPE, setMethod);
 		if(context == C.STATEMENT)
 			gen.pop();
+        Var.popThreadBindings();
 	}
 
 	public boolean hasJavaClass() {
@@ -3811,7 +3833,7 @@ public static class SetExpr implements Expr{
 			if(!(expr instanceof LiteralExpr))
 				constant = false;
 			}
-		Expr ret = new SetExpr(keys);
+		Expr ret = new SetExpr(keys, Utils.coordOf(form));
 		if(form instanceof IObj && ((IObj) form).meta() != null)
 			return new MetaExpr(ret, MapExpr
 					.parse(context == C.EVAL ? context : C.EXPRESSION, ((IObj) form).meta()));
@@ -3833,10 +3855,12 @@ public static class SetExpr implements Expr{
 
 public static class VectorExpr implements Expr{
 	public final IPersistentVector args;
+    public IPersistentVector coord;
     final static Method vectorMethod = Method.getMethod("clojure.lang.IPersistentVector vector(Object[])");
 
-	public VectorExpr(IPersistentVector args){
+	public VectorExpr(IPersistentVector args, IPersistentVector coord){
 		this.args = args;
+        this.coord = coord;
 	}
 
 	public Object eval() {
@@ -3847,6 +3871,7 @@ public static class VectorExpr implements Expr{
 	}
 
 	public void emit(C context, ObjExpr objx, GeneratorAdapter gen){
+        Var.pushThreadBindings(RT.map(COORD, coord));
         if(args.count() <= Tuple.MAX_SIZE)
             {
             for(int i = 0; i < args.count(); i++) {
@@ -3863,6 +3888,7 @@ public static class VectorExpr implements Expr{
 
         if(context == C.STATEMENT)
 			gen.pop();
+        Var.popThreadBindings();
 	}
 
 	public boolean hasJavaClass() {
@@ -3884,7 +3910,7 @@ public static class VectorExpr implements Expr{
 			if(!(v instanceof LiteralExpr))
 				constant = false;
 			}
-		Expr ret = new VectorExpr(args);
+		Expr ret = new VectorExpr(args, Utils.coordOf(form));
 		if(form instanceof IObj && ((IObj) form).meta() != null)
 			return new MetaExpr(ret, MapExpr
 					.parse(context == C.EVAL ? context : C.EXPRESSION, ((IObj) form).meta()));
@@ -8086,6 +8112,7 @@ public static Object eval(Object form, boolean freshLoader) {
 				formCoords = new HashSet();
 
                 collectEmittedMeta = Boolean.TRUE.equals(RT.get(RT.meta(form), STORM_COLLECT_EMITTED_KEY));
+
 
 				// Tag the coords
 				form = Utils.tagStormCoord(form);

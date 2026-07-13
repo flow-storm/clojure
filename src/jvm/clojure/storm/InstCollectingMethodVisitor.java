@@ -76,6 +76,11 @@ public class InstCollectingMethodVisitor extends MethodVisitor {
 
     @Override
     public void visitIntInsn(final int opcode, final int operand) {
+        Emitter.collectEmitInst(RT.map(
+                Keyword.intern("instruction", "op"), OpcodesUtils.opCodeKey(opcode),
+                Keyword.intern("instruction", "kind"), Keyword.intern(null, "inst"),
+                Keyword.intern("instruction", "operand"), operand
+        ));
         orig.visitIntInsn(opcode, operand);
         }
 
@@ -91,6 +96,11 @@ public class InstCollectingMethodVisitor extends MethodVisitor {
 
     @Override
     public void visitTypeInsn(final int opcode, final String type) {
+        Emitter.collectEmitInst(RT.map(
+                Keyword.intern("instruction", "op"), OpcodesUtils.opCodeKey(opcode),
+                Keyword.intern("instruction", "kind"), Keyword.intern(null, "type"),
+                Keyword.intern(null, "type"), type
+        ));
         orig.visitTypeInsn(opcode, type);
         }
 
@@ -196,6 +206,11 @@ public class InstCollectingMethodVisitor extends MethodVisitor {
 
     @Override
     public void visitMultiANewArrayInsn(final String descriptor, final int numDimensions) {
+        Emitter.collectEmitInst(RT.map(
+                Keyword.intern("instruction", "op"), Keyword.intern(null, "anewarray"),
+                Keyword.intern(null, "dimensions"), numDimensions,
+                Keyword.intern(null, "descriptor"), descriptor
+        ));
         orig.visitMultiANewArrayInsn(descriptor,numDimensions);
         }
 

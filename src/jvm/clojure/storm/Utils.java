@@ -23,6 +23,8 @@ import clojure.lang.PersistentTreeSet;
 import clojure.lang.RT;
 import clojure.lang.Symbol;
 import clojure.lang.Compiler;
+
+import java.security.Key;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ArrayList;
@@ -69,13 +71,13 @@ public class Utils {
 
             for (Object meObj : m) {
                 IMapEntry me = (IMapEntry) meObj;
-                if (me.key().equals(LispReader.COORD_KEY) ||
-                    me.key().equals(Compiler.STORM_COORDS_EMITTED_COORDS_KEY) ||
-                    me.key().equals(Compiler.SKIP_TRACE_KEY) ||
-                    me.key().equals(Compiler.FN_TRACE_SYM_KEY)) {
-                    retMeta = retMeta.assoc(me.key(), me.val());
+                if (me.key() instanceof Keyword) {
+                    Keyword k = (Keyword) me.key();
+                    if (k.getNamespace()!=null && k.getNamespace().equals("clojure.storm")) {
+                        retMeta = retMeta.assoc(me.key(), me.val());
                     }
                 }
+            }
             return retMeta;
         } else {
             return m;
@@ -238,7 +240,11 @@ public class Utils {
             public Object invoke(Object coord, Object frm) {
                 // Tag seqs and symbols but don't tag empty lists 
                 if (((frm instanceof clojure.lang.ISeq) && RT.count(frm) > 0) ||
-                    (frm instanceof clojure.lang.Symbol))
+                    (frm instanceof clojure.lang.Symbol) ||
+                    (frm instanceof clojure.lang.PersistentHashMap) ||
+                        (frm instanceof clojure.lang.PersistentArrayMap) ||
+                        (frm instanceof clojure.lang.PersistentVector)
+                )
                     return addCoordMeta(frm, (IPersistentVector)coord);
                 else
                     return frm;
@@ -266,23 +272,27 @@ public class Utils {
             return form;
         }
 
-
-    public static Object stripStormMeta(Object form) {
-        return walkCodeForm(
-            PersistentVector.EMPTY,
-            new AFn() {            
-                public Object invoke(Object coord, Object frm) {
-                    if ((frm instanceof clojure.lang.ISeq) || (frm instanceof clojure.lang.Symbol)){
-                        IObj mfrm = (IObj) frm;
-                        IPersistentMap frmMeta = RT.meta(mfrm);
-                        return mfrm.withMeta((IPersistentMap) RT.dissoc(frmMeta, LispReader.COORD_KEY));                        
-                    } else
-                        return frm;
-                    }
-                },
-            form
-            );
-        }
+//    public static Object stripStormMeta(Object form) {
+//        return walkCodeForm(
+//            PersistentVector.EMPTY,
+//            new AFn() {
+//                public Object invoke(Object coord, Object frm) {
+//                    if (frm instanceof IObj){
+//                        IObj mfrm = (IObj) frm;
+//                        IPersistentMap frmMeta = RT.meta(mfrm);
+//                        if(frmMeta.containsKey(LispReader.COORD_KEY)) frmMeta = (IPersistentMap) RT.dissoc(frmMeta, LispReader.COORD_KEY);
+//                        if(frmMeta.containsKey(Compiler.STORM_COORDS_EMITTED_COORDS_KEY)) frmMeta = (IPersistentMap) RT.dissoc(frmMeta, Compiler.STORM_COORDS_EMITTED_COORDS_KEY);
+//                        if(frmMeta.containsKey(Compiler.STORM_COLLECT_EMITTED_KEY)) frmMeta = (IPersistentMap) RT.dissoc(frmMeta, Compiler.STORM_COLLECT_EMITTED_KEY);
+//                        if(frmMeta.containsKey(Compiler.SKIP_TRACE_KEY)) frmMeta = (IPersistentMap) RT.dissoc(frmMeta, Compiler.SKIP_TRACE_KEY);
+//                        if(frmMeta.containsKey(Compiler.FN_TRACE_SYM_KEY)) frmMeta = (IPersistentMap) RT.dissoc(frmMeta, Compiler.FN_TRACE_SYM_KEY);
+//                        return mfrm.withMeta(frmMeta);
+//                    } else
+//                        return frm;
+//                    }
+//                },
+//            form
+//            );
+//        }
 
 	public static int toInt(Object n) {
 		if (n == null)                 return 0;
