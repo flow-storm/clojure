@@ -5,9 +5,11 @@ import clojure.lang.Keyword;
 import clojure.lang.RT;
 
 public class InstCollectingClassVisitor extends ClassWriter {
-
-    public InstCollectingClassVisitor(final int flags) {
+    private ClassWriter origCw;
+    
+    public InstCollectingClassVisitor(ClassWriter cw, int flags) {
         super(flags);
+        origCw=cw;
     }
 
     @Override
@@ -19,44 +21,53 @@ public class InstCollectingClassVisitor extends ClassWriter {
             final String superName,
             final String[] interfaces) {
         Emitter.collectEmitClass(access, name, signature, superName, interfaces);
-        super.visit(version, access, name, signature, superName, interfaces);
+        origCw.visit(version, access, name, signature, superName, interfaces);
     }
 
     @Override
     public void visitSource(final String file, final String debug) {
-        super.visitSource(file, debug);
+        origCw.visitSource(file, debug);
     }
 
     @Override
     public ModuleVisitor visitModule(final String name, final int flags, final String version) {
-        return super.visitModule(name, flags, version);
+        return origCw.visitModule(name, flags, version);
+    }
+
+    @Override
+    public void visitNestHostExperimental(final String nestHost) {
+        origCw.visitNestHostExperimental(nestHost);
     }
 
     @Override
     public void visitOuterClass(final String owner, final String name, final String descriptor) {
-        super.visitOuterClass(owner, name, descriptor);
+        origCw.visitOuterClass(owner, name, descriptor);
     }
 
     @Override
     public AnnotationVisitor visitAnnotation(final String descriptor, final boolean visible) {
-        return super.visitAnnotation(descriptor, visible);
+        return origCw.visitAnnotation(descriptor, visible);
     }
 
     @Override
     public AnnotationVisitor visitTypeAnnotation(final int typeRef, final TypePath typePath, final String descriptor, final boolean visible) {
-        return super.visitTypeAnnotation(typeRef, typePath, descriptor, visible);
+        return origCw.visitTypeAnnotation(typeRef, typePath, descriptor, visible);
     }
 
     @Override
     public void visitAttribute(final Attribute attribute) {
-        super.visitAttribute(attribute);
+        origCw.visitAttribute(attribute);
     }
 
+    @Override
+    public void visitNestMemberExperimental(final String nestMember) {
+        origCw.visitNestMemberExperimental(nestMember);
+    }
 
     @Override
     public void visitInnerClass(
             final String name, final String outerName, final String innerName, final int access) {        
-        super.visitInnerClass(name, outerName, innerName, access);
+        origCw.visitInnerClass(name, outerName, innerName, access);
     }
 
 
@@ -75,7 +86,7 @@ public class InstCollectingClassVisitor extends ClassWriter {
                 Keyword.intern("field", "value"), value
         ));
 
-        return super.visitField(access, name, descriptor, signature, value);
+        return origCw.visitField(access, name, descriptor, signature, value);
     }
 
     @Override
@@ -87,11 +98,102 @@ public class InstCollectingClassVisitor extends ClassWriter {
             final String[] exceptions) {
         Emitter.collectEmitMethod(access, name, descriptor, signature, exceptions);
         return new InstCollectingMethodVisitor(
-                super.visitMethod(access, name, descriptor, signature, exceptions));
+                origCw.visitMethod(access, name, descriptor, signature, exceptions));
     }
 
     @Override
     public void visitEnd() {
-        super.visitEnd();
+        origCw.visitEnd();
     }
+
+    @Override
+    public byte[] toByteArray() {
+        return origCw.toByteArray();
     }
+
+    @Override
+    public int newConst(final Object value) {
+        return origCw.newConst(value);
+    }
+
+    @Override
+    public int newUTF8(final String value) {
+        return origCw.newUTF8(value);
+    }
+    
+    @Override
+    public int newClass(final String value) {
+        return origCw.newClass(value);
+    }
+
+  @Override
+  public int newMethodType(final String methodDescriptor) {
+      return origCw.newMethodType(methodDescriptor);
+  }
+
+  @Override
+  public int newModule(final String moduleName) {
+      return origCw.newModule(moduleName);
+  }
+
+  @Override
+  public int newPackage(final String packageName) {
+      return origCw.newPackage(packageName);
+  }
+
+  @Override
+  public int newHandle(
+      final int tag, final String owner, final String name, final String descriptor) {
+      return origCw.newHandle(tag, owner, name, descriptor);
+  }
+
+  @Override
+  public int newHandle(
+      final int tag,
+      final String owner,
+      final String name,
+      final String descriptor,
+      final boolean isInterface) {
+      return origCw.newHandle(tag, owner, name, descriptor, isInterface);
+  }
+
+    @Override
+  public int newConstantDynamic(
+      final String name,
+      final String descriptor,
+      final Handle bootstrapMethodHandle,
+      final Object... bootstrapMethodArguments) {
+        return origCw.newConstantDynamic(name, descriptor, bootstrapMethodHandle, bootstrapMethodArguments);
+  }
+
+  @Override
+  public int newInvokeDynamic(
+      final String name,
+      final String descriptor,
+      final Handle bootstrapMethodHandle,
+      final Object... bootstrapMethodArguments) {
+    return origCw.newInvokeDynamic(name, descriptor, bootstrapMethodHandle, bootstrapMethodArguments);
+  }
+
+  @Override
+  public int newField(final String owner, final String name, final String descriptor) {
+      return origCw.newField(owner, name, descriptor);
+  }
+
+  @Override
+  public int newMethod(
+      final String owner, final String name, final String descriptor, final boolean isInterface) {
+      return origCw.newMethod(owner, name, descriptor, isInterface);
+  }
+
+  @Override
+  public int newNameType(final String name, final String descriptor) {
+      return origCw.newNameType(name, descriptor);
+  }
+
+
+
+    
+
+    
+}

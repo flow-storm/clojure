@@ -324,8 +324,6 @@ static public Object getCompilerOption(Keyword k){
     static Object elideMeta(Object m){
         Collection<Object> elides = (Collection<Object>) getCompilerOption(elideMetaKey);
 
-        m = elideStormMeta(m);
-		
         if(elides != null)
             {
             for(Object k : elides)
@@ -335,6 +333,8 @@ static public Object getCompilerOption(Keyword k){
                 }
 //            System.out.println("Remaining: " + RT.keys(m));
             }
+
+        m = elideStormMeta(m);
         return m;
     }
 
@@ -3759,7 +3759,7 @@ public static class MapExpr implements Expr{
 			}
 
 		Expr ret = new MapExpr(keyvals, Utils.coordOf(form));
-		if(form instanceof IObj && ((IObj) form).meta() != null)
+		if(form instanceof IObj && ((IObj) form).meta() != null && !Utils.onlyStormMeta(((IObj) form).meta()))
 			return new MetaExpr(ret, MapExpr
 					.parse(context == C.EVAL ? context : C.EXPRESSION, (IPersistentMap) elideStormMeta(((IObj) form).meta())));
 		else if(keysConstant)
@@ -3834,9 +3834,9 @@ public static class SetExpr implements Expr{
 				constant = false;
 			}
 		Expr ret = new SetExpr(keys, Utils.coordOf(form));
-		if(form instanceof IObj && ((IObj) form).meta() != null)
+		if(form instanceof IObj && ((IObj) form).meta() != null && !Utils.onlyStormMeta(((IObj) form).meta()))
 			return new MetaExpr(ret, MapExpr
-					.parse(context == C.EVAL ? context : C.EXPRESSION, ((IObj) form).meta()));
+					.parse(context == C.EVAL ? context : C.EXPRESSION, (IPersistentMap) elideStormMeta(((IObj) form).meta())));
 		else if(constant)
 			{
 			IPersistentSet set = PersistentHashSet.EMPTY;
@@ -3911,9 +3911,9 @@ public static class VectorExpr implements Expr{
 				constant = false;
 			}
 		Expr ret = new VectorExpr(args, Utils.coordOf(form));
-		if(form instanceof IObj && ((IObj) form).meta() != null)
+		if(form instanceof IObj && ((IObj) form).meta() != null && !Utils.onlyStormMeta(((IObj) form).meta()))
 			return new MetaExpr(ret, MapExpr
-					.parse(context == C.EVAL ? context : C.EXPRESSION, ((IObj) form).meta()));
+					.parse(context == C.EVAL ? context : C.EXPRESSION, (IPersistentMap) elideStormMeta(((IObj) form).meta())));
 		else if (constant)
 			{
 			IPersistentVector rv = PersistentVector.EMPTY;
@@ -4868,7 +4868,7 @@ static public class FnExpr extends ObjExpr{
 			{
 			//System.err.println(name + " supports meta");
 			return new MetaExpr(fn, MapExpr
-					.parse(context == C.EVAL ? context : C.EXPRESSION, fmeta));
+					.parse(context == C.EVAL ? context : C.EXPRESSION, (IPersistentMap) elideStormMeta(fmeta)));
 			}
 		else
 			return fn;
@@ -7670,9 +7670,9 @@ private static Expr analyze(C context, Object form, String name) {
                 && ((IPersistentCollection) form).count() == 0)
 				{
 				Expr ret = new EmptyExpr(form);
-				if(RT.meta(form) != null)
+				if(RT.meta(form) != null && !Utils.onlyStormMeta(RT.meta(form)))
 					ret = new MetaExpr(ret, MapExpr
-							.parse(context == C.EVAL ? context : C.EXPRESSION, ((IObj) form).meta()));
+							.parse(context == C.EVAL ? context : C.EXPRESSION, (IPersistentMap) elideStormMeta(((IObj) form).meta())));
 				return ret;
 				}
 		else if(form instanceof ISeq)
@@ -9029,8 +9029,8 @@ static public class NewInstanceExpr extends ObjExpr{
 		IPersistentMap fmeta = RT.meta(frm);
 		if(fmeta != null)
 			fmeta = fmeta.without(RT.LINE_KEY).without(RT.COLUMN_KEY).without(RT.FILE_KEY);
-		if (RT.count(fmeta) > 0)
-			return new MetaExpr(ret, MapExpr.parse(context == C.EVAL ? context : C.EXPRESSION, fmeta));
+		if (RT.count(fmeta) > 0 && !Utils.onlyStormMeta(fmeta))
+			return new MetaExpr(ret, MapExpr.parse(context == C.EVAL ? context : C.EXPRESSION, (IPersistentMap) elideStormMeta(fmeta)));
 		else
 			return ret;
 	}
@@ -10177,18 +10177,16 @@ public static class CaseExpr implements Expr, MaybePrimitiveExpr{
 static IPersistentCollection emptyVarCallSites(){return PersistentHashSet.EMPTY;}
 
     static public ClassWriter classWriter(boolean collector) {
+        int flags = ClassWriter.COMPUTE_MAXS + ClassWriter.COMPUTE_FRAMES;
+        ClassWriter cw = new ClassWriter(flags) {
+            protected String getCommonSuperClass (final String type1, final String type2) {
+                return "java/lang/Object";
+                }
+            };
     if(collector){
-        return new InstCollectingClassVisitor(ClassWriter.COMPUTE_MAXS + ClassWriter.COMPUTE_FRAMES) {
-            protected String getCommonSuperClass (final String type1, final String type2) {
-                return "java/lang/Object";
-            }
-        };
+        return new InstCollectingClassVisitor(cw,flags);
     }else{
-        return new ClassWriter(ClassWriter.COMPUTE_MAXS + ClassWriter.COMPUTE_FRAMES) {
-            protected String getCommonSuperClass (final String type1, final String type2) {
-                return "java/lang/Object";
-            }
-        };
+        return cw;
     }
 
 }

@@ -11,8 +11,7 @@ import java.util.stream.Collectors;
 
 public class InstCollectingMethodVisitor extends MethodVisitor {
 
-    public static 
-    MethodVisitor orig;
+    private MethodVisitor orig;
 
     public InstCollectingMethodVisitor(MethodVisitor orig) {
         super(Opcodes.ASM4);

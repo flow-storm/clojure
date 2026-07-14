@@ -65,6 +65,27 @@ public class Utils {
         }
     }
 
+    public static boolean onlyStormMeta(IPersistentMap m) {
+        boolean onlyStormMeta=false;
+        if (m != null && RT.count(m) > 0) {
+            for (Object meObj : m) {
+                IMapEntry me = (IMapEntry) meObj;
+                if (me.key() instanceof Keyword) {
+                    Keyword k = (Keyword) me.key();
+                    if (k.getNamespace()!=null && k.getNamespace().equals("clojure.storm")) {
+                        onlyStormMeta=true;
+                    } else {
+                        onlyStormMeta=false;
+                        break;
+                    }
+                } else {
+                    onlyStormMeta=false;
+                    break;
+                }
+            }
+        }
+        return onlyStormMeta;
+    }
     public static IPersistentMap stormMeta(IPersistentMap m) {
         if (m != null && RT.count(m) > 0) {
             IPersistentMap retMeta = PersistentHashMap.EMPTY;
@@ -236,14 +257,16 @@ public class Utils {
     public static Object tagFormRecursively(Object form) {
         return walkCodeForm(
             PersistentVector.EMPTY,
-            new AFn() {            
+            new AFn() {
             public Object invoke(Object coord, Object frm) {
-                // Tag seqs and symbols but don't tag empty lists 
+                // Tag seqs and symbols but don't tag empty lists
                 if (((frm instanceof clojure.lang.ISeq) && RT.count(frm) > 0) ||
                     (frm instanceof clojure.lang.Symbol) ||
                     (frm instanceof clojure.lang.PersistentHashMap) ||
-                        (frm instanceof clojure.lang.PersistentArrayMap) ||
-                        (frm instanceof clojure.lang.PersistentVector)
+                       (frm instanceof clojure.lang.PersistentArrayMap) ||
+                        (frm instanceof clojure.lang.PersistentVector) ||
+                        (frm instanceof clojure.lang.PersistentHashSet)
+
                 )
                     return addCoordMeta(frm, (IPersistentVector)coord);
                 else
@@ -259,7 +282,7 @@ public class Utils {
             RT.meta(form)!=null &&
             RT.get(RT.meta(form), Keyword.intern("clojure.storm", "dont-tag")) != null);
         
-        if((Boolean)clojure.storm.Emitter.INSTRUMENTATION_ENABLE.deref() && !dontTag) {
+        if(!dontTag) {
             try {            
                 Object tagged = Utils.tagFormRecursively(form);            
                 return tagged;
