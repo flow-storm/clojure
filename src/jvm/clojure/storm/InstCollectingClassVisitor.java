@@ -20,7 +20,12 @@ public class InstCollectingClassVisitor extends ClassWriter {
             final String signature,
             final String superName,
             final String[] interfaces) {
-        Emitter.collectEmitClass(access, name, signature, superName, interfaces);
+        Emitter.addEmitted(RT.map(
+                Keyword.intern("emitted","type"), Keyword.intern(null,"class"),
+                Keyword.intern("class","name"), name,
+                Keyword.intern("class","signature"), signature,
+                Keyword.intern("class","super-name"), superName,
+                Keyword.intern("class","interfaces"), interfaces));
         origCw.visit(version, access, name, signature, superName, interfaces);
     }
 
@@ -78,7 +83,8 @@ public class InstCollectingClassVisitor extends ClassWriter {
             final String descriptor,
             final String signature,
             final Object value) {
-        Emitter.collectEmitField(RT.map(
+        Emitter.addEmitted(RT.map(
+                Keyword.intern("emitted","type"), Keyword.intern(null,"field"),
                 Keyword.intern("field", "access"), access,
                 Keyword.intern("field", "name"), name,
                 Keyword.intern("field", "signature"), signature,
@@ -96,7 +102,13 @@ public class InstCollectingClassVisitor extends ClassWriter {
             final String descriptor,
             final String signature,
             final String[] exceptions) {
-        Emitter.collectEmitMethod(access, name, descriptor, signature, exceptions);
+        Emitter.addEmitted(RT.map(
+                Keyword.intern("emitted","type"), Keyword.intern(null,"method"),
+                Keyword.intern("method","name"), name,
+                Keyword.intern("method","descriptor"), descriptor,
+                Keyword.intern("method","signature"), signature,
+                Keyword.intern("method","exceptions"), exceptions
+                ));
         return new InstCollectingMethodVisitor(
                 origCw.visitMethod(access, name, descriptor, signature, exceptions));
     }

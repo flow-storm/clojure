@@ -66,7 +66,8 @@ public class InstCollectingMethodVisitor extends MethodVisitor {
 
     @Override
     public void visitInsn(final int opcode) {
-        Emitter.collectEmitInst(RT.map(
+        Emitter.addEmitted(RT.map(
+                Keyword.intern("emitted","type"), Keyword.intern(null,"instruction"),
                 Keyword.intern("instruction", "op"), OpcodesUtils.opCodeKey(opcode),
                 Keyword.intern("instruction", "kind"), Keyword.intern(null, "inst")
         ));
@@ -75,7 +76,8 @@ public class InstCollectingMethodVisitor extends MethodVisitor {
 
     @Override
     public void visitIntInsn(final int opcode, final int operand) {
-        Emitter.collectEmitInst(RT.map(
+        Emitter.addEmitted(RT.map(
+                Keyword.intern("emitted","type"), Keyword.intern(null,"instruction"),
                 Keyword.intern("instruction", "op"), OpcodesUtils.opCodeKey(opcode),
                 Keyword.intern("instruction", "kind"), Keyword.intern(null, "inst"),
                 Keyword.intern("instruction", "operand"), operand
@@ -85,7 +87,8 @@ public class InstCollectingMethodVisitor extends MethodVisitor {
 
     @Override
     public void visitVarInsn(final int opcode, final int var) {
-        Emitter.collectEmitInst(RT.map(
+        Emitter.addEmitted(RT.map(
+                Keyword.intern("emitted","type"), Keyword.intern(null,"instruction"),
                 Keyword.intern("instruction", "op"), OpcodesUtils.opCodeKey(opcode),
                 Keyword.intern("instruction", "kind"), Keyword.intern(null, "var"),
                 Keyword.intern(null, "var"), var
@@ -95,7 +98,8 @@ public class InstCollectingMethodVisitor extends MethodVisitor {
 
     @Override
     public void visitTypeInsn(final int opcode, final String type) {
-        Emitter.collectEmitInst(RT.map(
+        Emitter.addEmitted(RT.map(
+                Keyword.intern("emitted","type"), Keyword.intern(null,"instruction"),
                 Keyword.intern("instruction", "op"), OpcodesUtils.opCodeKey(opcode),
                 Keyword.intern("instruction", "kind"), Keyword.intern(null, "type"),
                 Keyword.intern(null, "type"), type
@@ -105,7 +109,8 @@ public class InstCollectingMethodVisitor extends MethodVisitor {
 
     @Override
     public void visitFieldInsn(final int opcode, final String owner, final String name, final String descriptor) {
-        Emitter.collectEmitInst(RT.map(
+        Emitter.addEmitted(RT.map(
+                Keyword.intern("emitted","type"), Keyword.intern(null,"instruction"),
                 Keyword.intern("instruction", "op"), OpcodesUtils.opCodeKey(opcode),
                 Keyword.intern("instruction", "kind"), Keyword.intern(null, "field"),
                 Keyword.intern(null, "owner"), owner,
@@ -123,7 +128,8 @@ public class InstCollectingMethodVisitor extends MethodVisitor {
 
     @Override
     public void visitMethodInsn(final int opcode, final String owner, final String name, final String descriptor, final boolean isInterface) {
-        Emitter.collectEmitInst(RT.map(
+        Emitter.addEmitted(RT.map(
+                Keyword.intern("emitted","type"), Keyword.intern(null,"instruction"),
                 Keyword.intern("instruction", "op"), OpcodesUtils.opCodeKey(opcode),
                 Keyword.intern("instruction", "kind"), Keyword.intern(null, "method"),
                 Keyword.intern(null, "owner"), owner,
@@ -136,7 +142,8 @@ public class InstCollectingMethodVisitor extends MethodVisitor {
 
     @Override
     public void visitInvokeDynamicInsn(final String name, final String descriptor, final Handle bootstrapMethodHandle, final Object... bootstrapMethodArguments) {
-        Emitter.collectEmitInst(RT.map(
+        Emitter.addEmitted(RT.map(
+                Keyword.intern("emitted","type"), Keyword.intern(null,"instruction"),
                 Keyword.intern("instruction", "op"), Keyword.intern(null, "invoke-dynamic"),
                 Keyword.intern(null, "descriptor"), descriptor
         ));
@@ -146,7 +153,8 @@ public class InstCollectingMethodVisitor extends MethodVisitor {
 
     @Override
     public void visitJumpInsn(final int opcode, final Label label) {
-        Emitter.collectEmitInst(RT.map(
+        Emitter.addEmitted(RT.map(
+                Keyword.intern("emitted","type"), Keyword.intern(null,"instruction"),
                 Keyword.intern("instruction", "op"), OpcodesUtils.opCodeKey(opcode),
                 Keyword.intern("instruction", "kind"), Keyword.intern(null, "jump"),
                 Keyword.intern(null, "label"), label.toString()
@@ -156,14 +164,18 @@ public class InstCollectingMethodVisitor extends MethodVisitor {
 
     @Override
     public void visitLabel(final Label label) {
-        Emitter.collectEmitLabel(label.toString());
+        Emitter.addEmitted(RT.map(
+                Keyword.intern("emitted","type"), Keyword.intern(null,"label"),
+                Keyword.intern("label","name"), label.toString()
+                ));
         orig.visitLabel(label);
         }
 
 
     @Override
     public void visitLdcInsn(final Object value) {
-        Emitter.collectEmitInst(RT.map(
+        Emitter.addEmitted(RT.map(
+                Keyword.intern("emitted","type"), Keyword.intern(null,"instruction"),
                 Keyword.intern("instruction", "op"), Keyword.intern(null, "ldc"),
                 Keyword.intern(null, "value"), value
         ));
@@ -172,7 +184,8 @@ public class InstCollectingMethodVisitor extends MethodVisitor {
 
     @Override
     public void visitIincInsn(final int var, final int increment) {
-        Emitter.collectEmitInst(RT.map(
+        Emitter.addEmitted(RT.map(
+                Keyword.intern("emitted","type"), Keyword.intern(null,"instruction"),
                 Keyword.intern("instruction", "op"), Keyword.intern(null, "iinc"),
                 Keyword.intern(null, "var"), var,
                 Keyword.intern(null, "increment"), increment
@@ -182,11 +195,12 @@ public class InstCollectingMethodVisitor extends MethodVisitor {
 
     @Override
     public void visitTableSwitchInsn(final int min, final int max, final Label dflt, final Label... labels) {
-        Emitter.collectEmitInst(RT.map(
+        Emitter.addEmitted(RT.map(
+                Keyword.intern("emitted","type"), Keyword.intern(null,"instruction"),
                 Keyword.intern("instruction", "op"), Keyword.intern(null, "table-switch"),
                 Keyword.intern(null, "min"), min,
                 Keyword.intern(null, "max"), max,
-                Keyword.intern(null, "default-label"), dflt,
+                Keyword.intern(null, "default-label"), dflt.toString(),
                 Keyword.intern(null, "labels"), Arrays.stream(labels).map(Object::toString).collect(Collectors.toList())
         ));
         orig.visitTableSwitchInsn(min,max,dflt,labels);
@@ -194,7 +208,8 @@ public class InstCollectingMethodVisitor extends MethodVisitor {
 
     @Override
     public void visitLookupSwitchInsn(final Label dflt, final int[] keys, final Label[] labels) {
-        Emitter.collectEmitInst(RT.map(
+        Emitter.addEmitted(RT.map(
+                Keyword.intern("emitted","type"), Keyword.intern(null,"instruction"),
                 Keyword.intern("instruction", "op"), Keyword.intern(null, "lookup-switch"),
                 Keyword.intern(null, "default-label"), dflt,
                 Keyword.intern(null, "keys"), keys,
@@ -205,7 +220,8 @@ public class InstCollectingMethodVisitor extends MethodVisitor {
 
     @Override
     public void visitMultiANewArrayInsn(final String descriptor, final int numDimensions) {
-        Emitter.collectEmitInst(RT.map(
+        Emitter.addEmitted(RT.map(
+                Keyword.intern("emitted","type"), Keyword.intern(null,"instruction"),
                 Keyword.intern("instruction", "op"), Keyword.intern(null, "anewarray"),
                 Keyword.intern(null, "dimensions"), numDimensions,
                 Keyword.intern(null, "descriptor"), descriptor
@@ -220,13 +236,14 @@ public class InstCollectingMethodVisitor extends MethodVisitor {
 
     @Override
     public void visitTryCatchBlock(final Label start, final Label end, final Label handler, final String type) {
-        Emitter.collectEmitInst(RT.map(
-                Keyword.intern("instruction", "op"), Keyword.intern(null, "try-catch-block"),
-                Keyword.intern(null, "start-label"), start.toString(),
-                Keyword.intern(null, "end-label"), end.toString(),
-                Keyword.intern(null, "handler-label"), handler.toString(),
-                Keyword.intern(null, "ex-type"), type
-        ));
+        Emitter.addEmitted(RT.map(
+                Keyword.intern("emitted","type"), Keyword.intern(null,"try-catch-block"),
+                Keyword.intern(null,"start-label"), start.toString(),
+                Keyword.intern(null,"end-label"), end.toString(),
+                Keyword.intern(null,"handler-label"), handler.toString(),
+                Keyword.intern(null,"type"), type
+                
+                ));
         orig.visitTryCatchBlock(start,end,handler,type);
         }
 
@@ -237,7 +254,8 @@ public class InstCollectingMethodVisitor extends MethodVisitor {
 
     @Override
     public void visitLocalVariable(final String name, final String descriptor, final String signature, final Label start, final Label end, final int index) {
-        Emitter.collectEmitVar(RT.map(
+        Emitter.addEmitted(RT.map(
+                Keyword.intern("emitted","type"), Keyword.intern(null,"var"),
                 Keyword.intern(null, "name"), name,
                 Keyword.intern(null, "descriptor"), descriptor,
                 Keyword.intern(null, "signature"), signature,

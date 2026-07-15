@@ -453,7 +453,7 @@ public class Emitter {
         formEmissions.reset(RT.vector());
     }
 
-    private static void addEmitted(IPersistentMap m) {
+    public static void addEmitted(IPersistentMap m) {
         Integer currFormId = (Integer) Compiler.FORM_ID.deref();
         Boolean collectEmitted = (Boolean) COLLECT_EMITTED.deref();
         if(collectEmitted && currFormId!=null) {
@@ -468,57 +468,7 @@ public class Emitter {
             });
         }
     }
-    public static void collectEmitClass(final int access,
-                                       final String name,
-                                       final String signature,
-                                       final String superName,
-                                       final String[] interfaces) {
-
-        addEmitted(RT.map(
-                Keyword.intern("emitted","type"), Keyword.intern(null,"class"),
-                Keyword.intern("class","name"), name,
-                Keyword.intern("class","signature"), signature,
-                Keyword.intern("class","super-name"), superName,
-                Keyword.intern("class","interfaces"), interfaces));
-
-    }
-
-    public static void collectEmitMethod(  final int access,
-                                           final String name,
-                                           final String descriptor,
-                                           final String signature,
-                                           final String[] exceptions) {
-
-        addEmitted(RT.map(
-                Keyword.intern("emitted","type"), Keyword.intern(null,"method"),
-                Keyword.intern("method","name"), name,
-                Keyword.intern("method","descriptor"), descriptor,
-                Keyword.intern("method","signature"), signature,
-                Keyword.intern("method","exceptions"), exceptions
-                ));
-
-
-    }
-
-    public static void collectEmitInst(IPersistentMap op) {
-        addEmitted((IPersistentMap)RT.assoc(op, Keyword.intern("emitted","type"), Keyword.intern(null,"instruction")));
-    }
-
-    public static void collectEmitLabel(String lbl) {
-        addEmitted(RT.map(
-                Keyword.intern("emitted","type"), Keyword.intern(null,"label"),
-                Keyword.intern("label","name"), lbl
-        ));
-    }
-
-    public static void collectEmitVar(IPersistentMap varMap) {
-        addEmitted( (IPersistentMap) RT.assoc(varMap, Keyword.intern("emitted","type"), Keyword.intern(null,"var")));
-    }
-
-    public static void collectEmitField(IPersistentMap fieldMap) {
-        addEmitted((IPersistentMap) RT.assoc(fieldMap, Keyword.intern("emitted","type"), Keyword.intern(null,"field")));
-    }
-
+  
 }
 
 // (clojure.storm.Tracer/setOnFormBytecodeEmitted (fn [form-id emissions-vec] (prn form-id emissions-vec)))
