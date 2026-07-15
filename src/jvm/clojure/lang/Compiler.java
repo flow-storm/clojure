@@ -458,13 +458,14 @@ static class DefExpr implements Expr{
 	public final String source;
 	public final int line;
 	public final int column;
+    public IPersistentVector coord;
 	final static Method bindRootMethod = Method.getMethod("void bindRoot(Object)");
 	final static Method setTagMethod = Method.getMethod("void setTag(clojure.lang.Symbol)");
 	final static Method setMetaMethod = Method.getMethod("void setMeta(clojure.lang.IPersistentMap)");
 	final static Method setDynamicMethod = Method.getMethod("clojure.lang.Var setDynamic(boolean)");
 	final static Method symintern = Method.getMethod("clojure.lang.Symbol intern(String, String)");
 
-	public DefExpr(String source, int line, int column, Var var, Expr init, Expr meta, boolean initProvided, boolean isDynamic){
+	public DefExpr(String source, int line, int column, Var var, Expr init, Expr meta, boolean initProvided, boolean isDynamic, IPersistentVector coord){
 		this.source = source;
 		this.line = line;
 		this.column = column;
@@ -473,6 +474,7 @@ static class DefExpr implements Expr{
 		this.meta = meta;
 		this.isDynamic = isDynamic;
 		this.initProvided = initProvided;
+        this.coord=coord;
 	}
 
     private boolean includesExplicitMetadata(MapExpr expr) {
@@ -516,6 +518,7 @@ static class DefExpr implements Expr{
 	}
 
 	public void emit(C context, ObjExpr objx, GeneratorAdapter gen){
+        Var.pushThreadBindings(RT.map(COORD, coord));
 		objx.emitVar(gen, var);
 		if(isDynamic)
 			{
@@ -546,6 +549,7 @@ static class DefExpr implements Expr{
 
 		if(context == C.STATEMENT)
 			gen.pop();
+        Var.popThreadBindings();
 	}
 
 	public boolean hasJavaClass(){
@@ -622,7 +626,7 @@ static class DefExpr implements Expr{
 			Expr meta = mm.count()==0 ? null:analyze(context == C.EVAL ? context : C.EXPRESSION, mm);
 			return new DefExpr((String) SOURCE.deref(), lineDeref(), columnDeref(),
 			                   v, analyze(context == C.EVAL ? context : C.EXPRESSION, RT.third(form), v.sym.name),
-			                   meta, RT.count(form) == 3, isDynamic);
+                meta, RT.count(form) == 3, isDynamic, Utils.coordOf(form));
 		}
 	}
 }
@@ -630,10 +634,12 @@ static class DefExpr implements Expr{
 public static class AssignExpr implements Expr{
 	public final AssignableExpr target;
 	public final Expr val;
+    public IPersistentVector coord;
 
-	public AssignExpr(AssignableExpr target, Expr val){
+	public AssignExpr(AssignableExpr target, Expr val, IPersistentVector coord){
 		this.target = target;
 		this.val = val;
+        this.coord = coord;
 	}
 
 	public Object eval() {
@@ -641,7 +647,9 @@ public static class AssignExpr implements Expr{
 	}
 
 	public void emit(C context, ObjExpr objx, GeneratorAdapter gen){
+        Var.pushThreadBindings(RT.map(COORD, coord));
 		target.emitAssign(context, objx, gen, val);
+        Var.popThreadBindings();
 	}
 
 	public boolean hasJavaClass() {
@@ -660,7 +668,7 @@ public static class AssignExpr implements Expr{
 			Expr target = analyze(C.EXPRESSION, RT.second(form));
 			if(!(target instanceof AssignableExpr))
 				throw new IllegalArgumentException("Invalid assignment target");
-			return new AssignExpr((AssignableExpr) target, analyze(C.EXPRESSION, RT.third(form)));
+			return new AssignExpr((AssignableExpr) target, analyze(C.EXPRESSION, RT.third(form)), Utils.coordOf(form));
 		}
 	}
 }
@@ -694,11 +702,12 @@ public static class VarExpr implements Expr, AssignableExpr{
 	public void emit(C context, ObjExpr objx, GeneratorAdapter gen){
         Var.pushThreadBindings(RT.map(COORD, coord));
 		objx.emitVarValue(gen,var,coord);
-        Var.popThreadBindings();
-		if(context == C.STATEMENT)
+        if(context == C.STATEMENT)
 			{
 			gen.pop();
 			}
+        Var.popThreadBindings();
+
 	}
 
 	public boolean hasJavaClass(){
@@ -1042,9 +1051,9 @@ static public abstract class HostExpr implements Expr, MaybePrimitiveExpr{
 						:(Symbol) RT.third(form);
 				Symbol tag = tagOf(form);
 				if(c != null) {
-					return new StaticFieldExpr(line, column, c, munge(sym.name), tag);
+					return new StaticFieldExpr(line, column, c, munge(sym.name), tag, Utils.coordOf(form));
 				} else
-					return new InstanceFieldExpr(line, column, instance, munge(sym.name), tag, (((Symbol)RT.third(form)).name.charAt(0) == '-'));
+					return new InstanceFieldExpr(line, column, instance, munge(sym.name), tag, (((Symbol)RT.third(form)).name.charAt(0) == '-'), Utils.coordOf(form));
 				}
 			else
 				{
@@ -1492,10 +1501,11 @@ static class InstanceFieldExpr extends FieldExpr implements AssignableExpr{
 	public final boolean requireField;
 	final static Method invokeNoArgInstanceMember = Method.getMethod("Object invokeNoArgInstanceMember(Object,String,boolean)");
 	final static Method setInstanceFieldMethod = Method.getMethod("Object setInstanceField(Object,String,Object)");
+    public IPersistentVector coord;
 
     Class jc;
 
-	public InstanceFieldExpr(int line, int column, Expr target, String fieldName, Symbol tag, boolean requireField) {
+	public InstanceFieldExpr(int line, int column, Expr target, String fieldName, Symbol tag, boolean requireField, IPersistentVector coord) {
 		this.target = target;
 		this.targetClass = target.hasJavaClass() ? target.getJavaClass() : null;
 		this.field = targetClass != null ? Reflector.getField(targetClass, fieldName, false) : null;
@@ -1504,6 +1514,7 @@ static class InstanceFieldExpr extends FieldExpr implements AssignableExpr{
 		this.column = column;
 		this.tag = tag;
 		this.requireField = requireField;
+        this.coord = coord;
 		if(field == null && RT.booleanCast(RT.WARN_ON_REFLECTION.deref()))
 			{
 			if(targetClass == null)
@@ -1543,6 +1554,7 @@ static class InstanceFieldExpr extends FieldExpr implements AssignableExpr{
 	}
 
 	public void emit(C context, ObjExpr objx, GeneratorAdapter gen){
+        Var.pushThreadBindings(RT.map(COORD, coord));
 		if(targetClass != null && field != null)
 			{
 			target.emit(C.EXPRESSION, objx, gen);
@@ -1566,6 +1578,7 @@ static class InstanceFieldExpr extends FieldExpr implements AssignableExpr{
 			if(context == C.STATEMENT)
 				gen.pop();
 			}
+        Var.popThreadBindings();
 	}
 
 	public boolean hasJavaClass() {
@@ -1617,14 +1630,16 @@ static class StaticFieldExpr extends FieldExpr implements AssignableExpr{
 //	final static Method setStaticFieldMethod = Method.getMethod("Object setStaticField(String,String,Object)");
 	final int line;
 	final int column;
+    public IPersistentVector coord;
 
     Class jc;
 
-	public StaticFieldExpr(int line, int column, Class c, String fieldName, Symbol tag) {
+	public StaticFieldExpr(int line, int column, Class c, String fieldName, Symbol tag, IPersistentVector coord) {
 		//this.className = className;
 		this.fieldName = fieldName;
 		this.line = line;
 		this.column = column;
+        this.coord = coord;
 		//c = Class.forName(className);
 		this.c = c;
 		try
@@ -1658,6 +1673,7 @@ static class StaticFieldExpr extends FieldExpr implements AssignableExpr{
 	}
 
 	public void emit(C context, ObjExpr objx, GeneratorAdapter gen){
+        Var.pushThreadBindings(RT.map(COORD, coord));
 		gen.visitLineNumber(line, gen.mark());
 
 		gen.getStatic(Type.getType(c), fieldName, Type.getType(field.getType()));
@@ -1670,6 +1686,7 @@ static class StaticFieldExpr extends FieldExpr implements AssignableExpr{
 //		gen.push(className);
 //		gen.push(fieldName);
 //		gen.invokeStatic(REFLECTOR_TYPE, getStaticFieldMethod);
+        Var.popThreadBindings();
 	}
 
 	public boolean hasJavaClass(){
@@ -2343,6 +2360,7 @@ static class StaticMethodExpr extends MethodExpr{
 	}
 
 	public void emitIntrinsicPredicate(C context, ObjExpr objx, GeneratorAdapter gen, Label falseLabel){
+        Var.pushThreadBindings(RT.map(COORD, coord));
 		gen.visitLineNumber(line, gen.mark());
 		if(method != null)
 			{
@@ -2359,9 +2377,11 @@ static class StaticMethodExpr extends MethodExpr{
 			}
 		else
 			throw new UnsupportedOperationException("Unboxed emit of unknown member");
+        Var.popThreadBindings();
 	}
 
 	public void emitUnboxed(C context, ObjExpr objx, GeneratorAdapter gen){
+        Var.pushThreadBindings(RT.map(COORD, coord));
 		if(method != null)
 			{
 			MethodExpr.emitTypedArgs(objx, gen, method.getParameterTypes(), args);
@@ -2394,6 +2414,7 @@ static class StaticMethodExpr extends MethodExpr{
 			}
 		else
 			throw new UnsupportedOperationException("Unboxed emit of unknown member");
+        Var.popThreadBindings();
 	}
 
 	public void emit(C context, ObjExpr objx, GeneratorAdapter gen){
@@ -2719,9 +2740,11 @@ static class StringExpr extends LiteralExpr{
 
 static class MonitorEnterExpr extends UntypedExpr{
 	final Expr target;
+    public IPersistentVector coord;
 
-	public MonitorEnterExpr(Expr target){
+	public MonitorEnterExpr(Expr target, IPersistentVector coord){
 		this.target = target;
+        this.coord = coord;
 	}
 
 	public Object eval() {
@@ -2729,23 +2752,27 @@ static class MonitorEnterExpr extends UntypedExpr{
 	}
 
 	public void emit(C context, ObjExpr objx, GeneratorAdapter gen){
+        Var.pushThreadBindings(RT.map(COORD, coord));
 		target.emit(C.EXPRESSION, objx, gen);
 		gen.monitorEnter();
 		NIL_EXPR.emit(context, objx, gen);
+        Var.popThreadBindings();
 	}
 
 	static class Parser implements IParser{
 		public Expr parse(C context, Object form) {
-			return new MonitorEnterExpr(analyze(C.EXPRESSION, RT.second(form)));
+			return new MonitorEnterExpr(analyze(C.EXPRESSION, RT.second(form)), Utils.coordOf(form));
 		}
 	}
 }
 
 static class MonitorExitExpr extends UntypedExpr{
 	final Expr target;
+    public IPersistentVector coord;
 
-	public MonitorExitExpr(Expr target){
+	public MonitorExitExpr(Expr target, IPersistentVector coord){
 		this.target = target;
+        this.coord = coord;
 	}
 
 	public Object eval() {
@@ -2753,14 +2780,16 @@ static class MonitorExitExpr extends UntypedExpr{
 	}
 
 	public void emit(C context, ObjExpr objx, GeneratorAdapter gen){
+        Var.pushThreadBindings(RT.map(COORD, coord));
 		target.emit(C.EXPRESSION, objx, gen);
 		gen.monitorExit();
 		NIL_EXPR.emit(context, objx, gen);
+        Var.popThreadBindings();
 	}
 
 	static class Parser implements IParser{
 		public Expr parse(C context, Object form) {
-			return new MonitorExitExpr(analyze(C.EXPRESSION, RT.second(form)));
+			return new MonitorExitExpr(analyze(C.EXPRESSION, RT.second(form)), Utils.coordOf(form));
 		}
 	}
 
@@ -2772,6 +2801,7 @@ public static class TryExpr implements Expr{
 	public final PersistentVector catchExprs;
 	public final int retLocal;
 	public final int finallyLocal;
+    public IPersistentVector coord;
 
 	public static class CatchClause{
 		//final String className;
@@ -2789,12 +2819,13 @@ public static class TryExpr implements Expr{
 		}
 	}
 
-	public TryExpr(Expr tryExpr, PersistentVector catchExprs, Expr finallyExpr, int retLocal, int finallyLocal){
+	public TryExpr(Expr tryExpr, PersistentVector catchExprs, Expr finallyExpr, int retLocal, int finallyLocal, IPersistentVector coord){
 		this.tryExpr = tryExpr;
 		this.catchExprs = catchExprs;
 		this.finallyExpr = finallyExpr;
 		this.retLocal = retLocal;
 		this.finallyLocal = finallyLocal;
+        this.coord = coord;
 	}
 
 	public Object eval() {
@@ -2802,6 +2833,7 @@ public static class TryExpr implements Expr{
 	}
 
 	public void emit(C context, ObjExpr objx, GeneratorAdapter gen){
+        Var.pushThreadBindings(RT.map(COORD, coord));
 		Label startTry = gen.newLabel();
 		Label endTry = gen.newLabel();
 		Label end = gen.newLabel();
@@ -2872,6 +2904,7 @@ public static class TryExpr implements Expr{
 			gen.visitLocalVariable(clause.lb.name, "Ljava/lang/Object;", null, clause.label, clause.endLabel,
 			                       clause.lb.idx);
 			}
+        Var.popThreadBindings();
 	}
 
 	public boolean hasJavaClass() {
@@ -2986,7 +3019,7 @@ public static class TryExpr implements Expr{
 				}
 
 			return new TryExpr(bodyExpr, catches, finallyExpr, retLocal,
-			                   finallyLocal);
+                finallyLocal, Utils.coordOf(form));
 		}
 	}
 }
@@ -3050,9 +3083,11 @@ public static class TryExpr implements Expr{
 
 static class ThrowExpr extends UntypedExpr{
 	public final Expr excExpr;
+    public IPersistentVector coord;
 
-	public ThrowExpr(Expr excExpr){
+	public ThrowExpr(Expr excExpr, IPersistentVector coord){
 		this.excExpr = excExpr;
+        this.coord = coord;
 	}
 
 
@@ -3061,9 +3096,11 @@ static class ThrowExpr extends UntypedExpr{
 	}
 
 	public void emit(C context, ObjExpr objx, GeneratorAdapter gen){
+        Var.pushThreadBindings(RT.map(COORD, coord));
 		excExpr.emit(C.EXPRESSION, objx, gen);
 		gen.checkCast(THROWABLE_TYPE);
 		gen.throwException();
+        Var.popThreadBindings();
 	}
 
 	static class Parser implements IParser{
@@ -3074,7 +3111,7 @@ static class ThrowExpr extends UntypedExpr{
 				throw Util.runtimeException("Too few arguments to throw, throw expects a single Throwable instance");
 			else if(RT.count(form) > 2)
 				throw Util.runtimeException("Too many arguments to throw, throw expects a single Throwable instance");
-			return new ThrowExpr(analyze(C.EXPRESSION, RT.second(form)));
+			return new ThrowExpr(analyze(C.EXPRESSION, RT.second(form)), Utils.coordOf(form));
 		}
 	}
 }
@@ -3352,9 +3389,7 @@ public static class IfExpr implements Expr, MaybePrimitiveExpr{
 	}
 
 	public void emit(C context, ObjExpr objx, GeneratorAdapter gen){
-        Var.pushThreadBindings(RT.map(COORD, coord));
-		doEmit(context, objx, gen,false);
-        Var.popThreadBindings();
+        doEmit(context, objx, gen,false);        
 	}
 
 	public void emitUnboxed(C context, ObjExpr objx, GeneratorAdapter gen){
@@ -3362,6 +3397,7 @@ public static class IfExpr implements Expr, MaybePrimitiveExpr{
 	}
 
 	public void doEmit(C context, ObjExpr objx, GeneratorAdapter gen, boolean emitUnboxed){
+        Var.pushThreadBindings(RT.map(COORD, coord));
 		Label nullLabel = gen.newLabel();
 		Label falseLabel = gen.newLabel();
 		Label endLabel = gen.newLabel();
@@ -3408,7 +3444,8 @@ public static class IfExpr implements Expr, MaybePrimitiveExpr{
 		}
 
             
-		gen.mark(endLabel);        		
+		gen.mark(endLabel);
+        Var.popThreadBindings();
         
 	}
 
@@ -3644,10 +3681,11 @@ public static class EmptyExpr implements Expr{
 public static class ListExpr implements Expr{
 	public final IPersistentVector args;
 	final static Method arrayToListMethod = Method.getMethod("clojure.lang.ISeq arrayToList(Object[])");
+    public IPersistentVector coord;
 
-
-	public ListExpr(IPersistentVector args){
+	public ListExpr(IPersistentVector args, IPersistentVector coord){
 		this.args = args;
+        this.coord = coord;
 	}
 
 	public Object eval() {
@@ -3658,10 +3696,12 @@ public static class ListExpr implements Expr{
 	}
 
 	public void emit(C context, ObjExpr objx, GeneratorAdapter gen){
+        Var.pushThreadBindings(RT.map(COORD, coord));
 		MethodExpr.emitArgsAsArray(args, objx, gen);
 		gen.invokeStatic(RT_TYPE, arrayToListMethod);
 		if(context == C.STATEMENT)
 			gen.pop();
+        Var.popThreadBindings();
 	}
 
 	public boolean hasJavaClass() {
@@ -4218,7 +4258,7 @@ static class StaticInvokeExpr implements Expr, MaybePrimitiveExpr{
 	}
 
 	public static Expr parse(Var v, ISeq args, Object tag, boolean tailPosition, IPersistentVector coord) {
-		if(!v.isBound() || v.get() == null)
+        if(!v.isBound() || v.get() == null)
 			{
 //			System.out.println("Not bound: " + v);
 			return null;
@@ -4661,11 +4701,13 @@ static public class FnExpr extends ObjExpr{
 	private boolean hasPrimSigs;
 	private boolean hasMeta;
     private boolean hasEnclosingMethod;
+    public IPersistentVector coord;
 	//	String superName = null;
     Class jc;
 
-	public FnExpr(Object tag){
+	public FnExpr(Object tag, IPersistentVector coord){
 		super(tag);
+        this.coord = coord;
 	}
 
 	public boolean hasJavaClass() {
@@ -4683,6 +4725,7 @@ static public class FnExpr extends ObjExpr{
 	}
 
 	protected void emitMethods(ClassVisitor cv){
+        Var.pushThreadBindings(RT.map(COORD, coord));
 		//override of invoke/doInvoke for each method
 		for(ISeq s = RT.seq(methods); s != null; s = s.next())
 			{
@@ -4702,12 +4745,13 @@ static public class FnExpr extends ObjExpr{
 			gen.returnValue();
 			gen.endMethod();
 			}
+        Var.popThreadBindings();
 	}
 
 	static Expr parse(C context, ISeq form, String name) {
 		ISeq origForm = form;
 
-		FnExpr fn = new FnExpr(tagOf(form));
+		FnExpr fn = new FnExpr(tagOf(form), Utils.coordOf(form));
 		fn.setCoord(Utils.coordOf(form));
 
 		Keyword retkey = Keyword.intern(null, "rettag");
@@ -5927,6 +5971,7 @@ static public class ObjExpr implements Expr{
 	}
 
 	private void emitUnboxedLocal(GeneratorAdapter gen, LocalBinding lb, IPersistentVector coord){
+        Var.pushThreadBindings(RT.map(COORD, coord));
 		int argoff = canBeDirect ?0:1;
 		Class primc = lb.getPrimitiveType();
 		if(closes.containsKey(lb))
@@ -5939,6 +5984,7 @@ static public class ObjExpr implements Expr{
 		else
 			gen.visitVarInsn(Type.getType(primc).getOpcode(Opcodes.ILOAD), lb.idx);
 		Emitter.emitExprTrace(gen, this, coord, Type.getType(primc));
+        Var.popThreadBindings();
 	}
 
 	public void emitVar(GeneratorAdapter gen, Var var){
@@ -6070,9 +6116,11 @@ public static class FnMethod extends ObjMethod{
 	String prim ;
 	public boolean skipFnCallTrace = false;
 	public String mungedMethodTraceName = null;
-
-	public FnMethod(ObjExpr objx, ObjMethod parent){
+    public IPersistentVector coord;
+    
+	public FnMethod(ObjExpr objx, ObjMethod parent, IPersistentVector coord){
 		super(objx, parent);
+        this.coord = coord;
 	}
 
 	static public char classChar(Object x){
@@ -6110,7 +6158,7 @@ public static class FnMethod extends ObjMethod{
 		ISeq body = RT.next(form);
 		try
 			{
-			FnMethod method = new FnMethod(objx, (ObjMethod) METHOD.deref());
+			FnMethod method = new FnMethod(objx, (ObjMethod) METHOD.deref(), Utils.coordOf(form));
 			method.skipFnCallTrace = RT.meta(parms) !=null && RT.meta(parms).containsKey(SKIP_TRACE_KEY);
 			if(FN_TRACE_SYM.deref() != null)
 				{
@@ -6260,6 +6308,7 @@ public static class FnMethod extends ObjMethod{
 	}
 
 	public void emit(ObjExpr fn, ClassVisitor cv){
+        Var.pushThreadBindings(RT.map(COORD, coord));
 		if(fn.canBeDirect)
 			{
 //			System.out.println("emit static: " + fn.name);
@@ -6275,6 +6324,7 @@ public static class FnMethod extends ObjMethod{
 //			System.out.println("emit normal: " + fn.name);
 			doEmit(fn,cv);
 			}
+        Var.popThreadBindings();
 	}
 
 	public void doEmitStatic(ObjExpr fn, ClassVisitor cv){
@@ -6895,8 +6945,10 @@ public static class LocalBindingExpr implements Expr, MaybePrimitiveExpr, Assign
 	}
 
 	public void emit(C context, ObjExpr objx, GeneratorAdapter gen){
+        Var.pushThreadBindings(RT.map(COORD, coord));
 		if(context != C.STATEMENT)
 			objx.emitLocal(gen, b, shouldClear, coord);
+        Var.popThreadBindings();
 	}
 
 	public Object evalAssign(Expr val) {
@@ -6929,13 +6981,15 @@ public static class LocalBindingExpr implements Expr, MaybePrimitiveExpr, Assign
 
 public static class BodyExpr implements Expr, MaybePrimitiveExpr{
 	PersistentVector exprs;
+    public IPersistentVector coord;
 
 	public final PersistentVector exprs(){
 		return exprs;
 	}
 
-	public BodyExpr(PersistentVector exprs){
+	public BodyExpr(PersistentVector exprs, IPersistentVector coord){
 		this.exprs = exprs;
+        this.coord = coord;
 	}
 
 	static class Parser implements IParser{
@@ -6955,7 +7009,7 @@ public static class BodyExpr implements Expr, MaybePrimitiveExpr{
 				}
 			if(exprs.count() == 0)
 				exprs = exprs.cons(NIL_EXPR);
-			return new BodyExpr(exprs);
+			return new BodyExpr(exprs, Utils.coordOf(forms));
 		}
 	}
 
@@ -6984,6 +7038,7 @@ public static class BodyExpr implements Expr, MaybePrimitiveExpr{
 	}
 
 	public void emit(C context, ObjExpr objx, GeneratorAdapter gen){
+        Var.pushThreadBindings(RT.map(COORD, coord));
 		for(int i = 0; i < exprs.count() - 1; i++)
 			{
 			Expr e = (Expr) exprs.nth(i);
@@ -6991,6 +7046,7 @@ public static class BodyExpr implements Expr, MaybePrimitiveExpr{
 			}
 		Expr last = (Expr) exprs.nth(exprs.count() - 1);
 		last.emit(context, objx, gen);
+        Var.popThreadBindings();
 	}
 
 	public boolean hasJavaClass() {
@@ -7027,10 +7083,12 @@ public static class BindingInit{
 public static class LetFnExpr implements Expr{
 	public final PersistentVector bindingInits;
 	public final Expr body;
+    public IPersistentVector coord;
 
-	public LetFnExpr(PersistentVector bindingInits, Expr body){
+	public LetFnExpr(PersistentVector bindingInits, Expr body, IPersistentVector coord){
 		this.bindingInits = bindingInits;
 		this.body = body;
+        this.coord = coord;
 	}
 
 	static class Parser implements IParser{
@@ -7080,7 +7138,7 @@ public static class LetFnExpr implements Expr{
 					BindingInit bi = new BindingInit(lb, init);
 					bindingInits = bindingInits.cons(bi);
 					}
-				return new LetFnExpr(bindingInits, (new BodyExpr.Parser()).parse(context, body));
+				return new LetFnExpr(bindingInits, (new BodyExpr.Parser()).parse(context, body), Utils.coordOf(form));
 				}
 			finally
 				{
@@ -7094,6 +7152,7 @@ public static class LetFnExpr implements Expr{
 	}
 
 	public void emit(C context, ObjExpr objx, GeneratorAdapter gen){
+        Var.pushThreadBindings(RT.map(COORD, coord));
 		for(int i = 0; i < bindingInits.count(); i++)
 			{
 			BindingInit bi = (BindingInit) bindingInits.nth(i);
@@ -7138,6 +7197,7 @@ public static class LetFnExpr implements Expr{
 			else
 				gen.visitLocalVariable(lname, "Ljava/lang/Object;", null, loopLabel, end, bi.binding.idx);
 			}
+        Var.popThreadBindings();
 	}
 
 	public boolean hasJavaClass() {
@@ -7314,9 +7374,7 @@ public static class LetExpr implements Expr, MaybePrimitiveExpr{
 	}
 
 	public void emit(C context, ObjExpr objx, GeneratorAdapter gen){
-        Var.pushThreadBindings(RT.map(COORD, coord));
-		doEmit(context, objx, gen, false);
-        Var.popThreadBindings();
+        doEmit(context, objx, gen, false);        
 	}
 
 	public void emitUnboxed(C context, ObjExpr objx, GeneratorAdapter gen){
@@ -7325,6 +7383,7 @@ public static class LetExpr implements Expr, MaybePrimitiveExpr{
 
 
 	public void doEmit(C context, ObjExpr objx, GeneratorAdapter gen, boolean emitUnboxed){
+        Var.pushThreadBindings(RT.map(COORD, coord));
 		HashMap<BindingInit, Label> bindingLabels = new HashMap();
         // this is for let bindings created by functions destructuring, which will not have
         // a coord but we want to trace them anyway
@@ -7418,6 +7477,7 @@ public static class LetExpr implements Expr, MaybePrimitiveExpr{
 			else
 				gen.visitLocalVariable(lname, "Ljava/lang/Object;", null, bindingLabels.get(bi), end, bi.binding.idx);
 			}
+        Var.popThreadBindings();
 	}
 
 	public boolean hasJavaClass() {
@@ -7440,14 +7500,16 @@ public static class RecurExpr implements Expr, MaybePrimitiveExpr{
 	final int line;
 	final int column;
 	final String source;
+    public IPersistentVector coord;
 
 
-	public RecurExpr(IPersistentVector loopLocals, IPersistentVector args, int line, int column, String source){
+	public RecurExpr(IPersistentVector loopLocals, IPersistentVector args, int line, int column, String source, IPersistentVector coord){
 		this.loopLocals = loopLocals;
 		this.args = args;
 		this.line = line;
 		this.column = column;
 		this.source = source;
+        this.coord = coord;
 	}
 
 	public Object eval() {
@@ -7455,6 +7517,7 @@ public static class RecurExpr implements Expr, MaybePrimitiveExpr{
 	}
 
 	public void emit(C context, ObjExpr objx, GeneratorAdapter gen){
+        Var.pushThreadBindings(RT.map(COORD, coord));
 		Label loopLabel = (Label) LOOP_LABEL.deref();
 		if(loopLabel == null)
 			throw new IllegalStateException();
@@ -7525,6 +7588,7 @@ public static class RecurExpr implements Expr, MaybePrimitiveExpr{
 			}
 
 		gen.goTo(loopLabel);
+        Var.popThreadBindings();
 	}
 
 	public boolean hasJavaClass() {
@@ -7598,7 +7662,7 @@ public static class RecurExpr implements Expr, MaybePrimitiveExpr{
 						}
 					}
 				}
-			return new RecurExpr(loopLocals, args, line, column, source);
+			return new RecurExpr(loopLocals, args, line, column, source, Utils.coordOf(form));
 		}
 	}
 
@@ -7972,7 +8036,6 @@ static Object macroexpand(Object form) {
 private static Expr analyzeSeq(C context, ISeq form, String name) {
 	Object line = lineDeref();
 	Object column = columnDeref();
-	Object coord = Utils.coordOf(form);	
 
 	if(RT.meta(form) != null && RT.meta(form).containsKey(RT.LINE_KEY))
 		line = RT.meta(form).valAt(RT.LINE_KEY);
@@ -8298,9 +8361,9 @@ private static Expr analyzeSymbol(Symbol sym) {
 					List<Executable> maybeOverloads = QualifiedMethodExpr.methodOverloads(c, sym.name, QualifiedMethodExpr.MethodKind.STATIC);
 
 					if(maybeOverloads.isEmpty())
-						return new StaticFieldExpr(lineDeref(), columnDeref(), c, sym.name, tag);
+						return new StaticFieldExpr(lineDeref(), columnDeref(), c, sym.name, tag, Utils.coordOf(sym));
 					else
-						return new QualifiedMethodExpr(c, sym, new StaticFieldExpr(lineDeref(), columnDeref(), c, sym.name, tag), Utils.coordOf(sym));
+						return new QualifiedMethodExpr(c, sym, new StaticFieldExpr(lineDeref(), columnDeref(), c, sym.name, tag, Utils.coordOf(sym)), Utils.coordOf(sym));
 					}
 				else
 					return new QualifiedMethodExpr(c, sym, Utils.coordOf(sym));
@@ -8823,37 +8886,7 @@ public static Object compile(Reader rdr, String sourcePath, String sourceName) t
 		for(Object r = LispReader.read(pushbackReader, false, EOF, false, readerOpts); r != EOF;
 			r = LispReader.read(pushbackReader, false, EOF, false, readerOpts))
 			{
-            
-            // [STORM] For each evaluation, before macroexpanding :
-            // This is the same code added in the load path
-            // Supporting the compile path is useful only for debugging, like using
-            // clj-java-decompiler
-            // ------------------------------------------------------------------------
 
-            Object origForm = r;
-            Integer formId = null;
-            HashSet<String> formCoords = null;
-            boolean stormPushedBindings = false;
-            if (r != null) {
-                if (!Utils.isAnnoyingLeinNreplForm(origForm)) {
-                    // Calculate the form id
-                    formId = r.hashCode();
-                    formCoords = new HashSet();
-
-                    // Tag the coords
-                    r = Utils.tagStormCoord(r);
-
-                    // Bind FORM_ID so everything down the road knows what form
-                    // they belong to                    
-                    Var.pushThreadBindings(
-                        RT.mapUniqueKeys(FORM_ID, formId,
-                            FORM_COORDS, formCoords,
-                            COORD, RT.vector()));
-                    stormPushedBindings = true;
-                    } else {
-                    System.out.println("ClojureStorm: skipping lein initialization form instrumentation being evaluated in " + currentNS().toString());
-                    }
-                }
             // ------------------------------------------------------------------------
 			LINE_AFTER.set(pushbackReader.getLineNumber());
 			COLUMN_AFTER.set(pushbackReader.getColumnNumber());
@@ -8861,7 +8894,6 @@ public static Object compile(Reader rdr, String sourcePath, String sourceName) t
 			LINE_BEFORE.set(pushbackReader.getLineNumber());
 			COLUMN_BEFORE.set(pushbackReader.getColumnNumber());
 
-            if (stormPushedBindings) Var.popThreadBindings();
 			}
 
         // generate forms registration
@@ -9470,8 +9502,9 @@ public static class NewInstanceMethod extends ObjMethod{
 	static Symbol dummyThis = Symbol.intern(null,"dummy_this_dlskjsdfower");
 	private IPersistentVector parms;
 
-	public NewInstanceMethod(ObjExpr objx, ObjMethod parent){
+	public NewInstanceMethod(ObjExpr objx, ObjMethod parent, IPersistentVector coord){
 		super(objx, parent);
+        this.coord = coord;
 	}
 
 	int numParams(){
@@ -9500,7 +9533,7 @@ public static class NewInstanceMethod extends ObjMethod{
 	                               Map overrideables) {
 		//(methodname [this-name args*] body...)
 		//this-name might be nil
-		NewInstanceMethod method = new NewInstanceMethod(objx, (ObjMethod) METHOD.deref());		
+		NewInstanceMethod method = new NewInstanceMethod(objx, (ObjMethod) METHOD.deref(), Utils.coordOf(form));		
 		Symbol dotname = (Symbol)RT.first(form);
 		Symbol name = (Symbol) Symbol.intern(null,munge(dotname.name)).withMeta(RT.meta(dotname));
 		IPersistentVector parms = (IPersistentVector) RT.second(form);
@@ -9674,6 +9707,7 @@ public static class NewInstanceMethod extends ObjMethod{
 		return objClassName;
 	}
 	public void emit(ObjExpr obj, ClassVisitor cv){
+        Var.pushThreadBindings(RT.map(COORD, coord));
 		Method m = new Method(getMethodName(), getReturnType(), getArgTypes());
 
 		Type[] extypes = null;
@@ -9734,6 +9768,7 @@ public static class NewInstanceMethod extends ObjMethod{
 		gen.returnValue();
 		//gen.visitMaxs(1, 1);
 		gen.endMethod();
+        Var.popThreadBindings();
 	}
 }
 
@@ -9868,6 +9903,7 @@ public static class CaseExpr implements Expr, MaybePrimitiveExpr{
 	public final Class returnType;
 	public final int line;
 	public final int column;
+    public IPersistentVector coord;
 
 	final static Type NUMBER_TYPE = Type.getType(Number.class);
 	final static Method intValueMethod = Method.getMethod("int intValue()");
@@ -9882,7 +9918,7 @@ public static class CaseExpr implements Expr, MaybePrimitiveExpr{
     final static Keyword intKey = Keyword.intern(null, "int");
 	//(case* expr shift mask default map<minhash, [test then]> table-type test-type skip-check?)
 	public CaseExpr(int line, int column, LocalBindingExpr expr, int shift, int mask, int low, int high, Expr defaultExpr,
-	        SortedMap<Integer,Expr> tests,HashMap<Integer,Expr> thens, Keyword switchType, Keyword testType, Set<Integer> skipCheck){
+        SortedMap<Integer,Expr> tests,HashMap<Integer,Expr> thens, Keyword switchType, Keyword testType, Set<Integer> skipCheck, IPersistentVector coord){
 		this.expr = expr;
 		this.shift = shift;
 		this.mask = mask;
@@ -9893,6 +9929,7 @@ public static class CaseExpr implements Expr, MaybePrimitiveExpr{
 		this.thens = thens;
 		this.line = line;
 		this.column = column;
+        this.coord = coord;
 		if (switchType != compactKey && switchType != sparseKey)
 		    throw new IllegalArgumentException("Unexpected switch type: "+switchType);
 		this.switchType = switchType;
@@ -9936,6 +9973,7 @@ public static class CaseExpr implements Expr, MaybePrimitiveExpr{
     }
 
 	public void doEmit(C context, ObjExpr objx, GeneratorAdapter gen, boolean emitUnboxed){
+        Var.pushThreadBindings(RT.map(COORD, coord));
 		Label defaultLabel = gen.newLabel();
 		Label endLabel = gen.newLabel();
 		SortedMap<Integer,Label> labels = new TreeMap();
@@ -9989,6 +10027,7 @@ public static class CaseExpr implements Expr, MaybePrimitiveExpr{
 		gen.mark(endLabel);
 		if(context == C.STATEMENT)
 			gen.pop();
+        Var.popThreadBindings();
 	}
 
 	private boolean isShiftMasked(){
@@ -10169,7 +10208,7 @@ public static class CaseExpr implements Expr, MaybePrimitiveExpr{
             int line = ((Number)LINE.deref()).intValue();
             int column = ((Number)COLUMN.deref()).intValue();
 			return new CaseExpr(line, column, testexpr, shift, mask, low, high,
-			        defaultExpr, tests, thens, switchType, testType, skipCheck);
+                defaultExpr, tests, thens, switchType, testType, skipCheck, Utils.coordOf(form));
 		}
 	}
 }
