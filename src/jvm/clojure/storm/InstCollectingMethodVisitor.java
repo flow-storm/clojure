@@ -80,7 +80,7 @@ public class InstCollectingMethodVisitor extends MethodVisitor {
                 Keyword.intern("emitted","type"), Keyword.intern(null,"instruction"),
                 Keyword.intern("instruction", "op"), OpcodesUtils.opCodeKey(opcode),
                 Keyword.intern("instruction", "kind"), Keyword.intern(null, "inst"),
-                Keyword.intern("instruction", "operand"), operand
+                Keyword.intern(null, "operand"), operand
         ));
         orig.visitIntInsn(opcode, operand);
         }

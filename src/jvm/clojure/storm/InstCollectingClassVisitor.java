@@ -23,6 +23,7 @@ public class InstCollectingClassVisitor extends ClassWriter {
         Emitter.addEmitted(RT.map(
                 Keyword.intern("emitted","type"), Keyword.intern(null,"class"),
                 Keyword.intern("class","name"), name,
+                Keyword.intern("class","access"), OpcodesUtils.accessKeys(access),
                 Keyword.intern("class","signature"), signature,
                 Keyword.intern("class","super-name"), superName,
                 Keyword.intern("class","interfaces"), interfaces));
@@ -85,7 +86,7 @@ public class InstCollectingClassVisitor extends ClassWriter {
             final Object value) {
         Emitter.addEmitted(RT.map(
                 Keyword.intern("emitted","type"), Keyword.intern(null,"field"),
-                Keyword.intern("field", "access"), access,
+                Keyword.intern("field", "access"), OpcodesUtils.accessKeys(access),
                 Keyword.intern("field", "name"), name,
                 Keyword.intern("field", "signature"), signature,
                 Keyword.intern("field", "descriptor"), descriptor,
@@ -104,6 +105,7 @@ public class InstCollectingClassVisitor extends ClassWriter {
             final String[] exceptions) {
         Emitter.addEmitted(RT.map(
                 Keyword.intern("emitted","type"), Keyword.intern(null,"method"),
+                Keyword.intern("method","access"), OpcodesUtils.accessKeys(access),
                 Keyword.intern("method","name"), name,
                 Keyword.intern("method","descriptor"), descriptor,
                 Keyword.intern("method","signature"), signature,

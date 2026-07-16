@@ -1,10 +1,20 @@
 package clojure.storm;
 
 import clojure.asm.Opcodes;
-import clojure.lang.Keyword;
+import clojure.lang.*;
 
 public class OpcodesUtils {
+    public static IPersistentSet accessKeys(int accessFlags) {
+        IPersistentSet accSet = PersistentHashSet.EMPTY;
 
+        if ((accessFlags & Opcodes.ACC_PUBLIC) != 0) accSet = (IPersistentSet) RT.conj(accSet,Keyword.intern(null,"public"));
+        if ((accessFlags & Opcodes.ACC_PRIVATE) != 0) accSet = (IPersistentSet) RT.conj(accSet,Keyword.intern(null,"private"));
+        if ((accessFlags & Opcodes.ACC_PROTECTED) != 0) accSet = (IPersistentSet) RT.conj(accSet,Keyword.intern(null,"protected"));
+        if ((accessFlags & Opcodes.ACC_STATIC) != 0) accSet = (IPersistentSet) RT.conj(accSet,Keyword.intern(null,"static"));
+        if ((accessFlags & Opcodes.ACC_FINAL) != 0) accSet = (IPersistentSet) RT.conj(accSet,Keyword.intern(null,"final"));
+
+        return accSet;
+    }
     public static Keyword opCodeKey(final int opcode) {
         switch (opcode) {
         case Opcodes.NOP: return Keyword.intern("nop");
