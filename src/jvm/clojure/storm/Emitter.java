@@ -457,7 +457,8 @@ public class Emitter {
         Integer currFormId = (Integer) Compiler.FORM_ID.deref();
         Boolean collectEmitted = (Boolean) COLLECT_EMITTED.deref();
         if(collectEmitted && currFormId!=null) {
-            IPersistentMap mFinal = (IPersistentMap) RT.assoc(m, Keyword.intern(null, "coord"), Compiler.COORD.deref());
+            IPersistentVector currCoord = (IPersistentVector) Compiler.COORD.deref();
+            IPersistentMap mFinal = (IPersistentMap) RT.assoc(m, Keyword.intern(null, "coord"), currCoord);
             formEmissions.swap(new AFn() {
                 @Override
                 public Object invoke(Object fems) {
