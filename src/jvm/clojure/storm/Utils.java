@@ -337,23 +337,38 @@ public class Utils {
          }
      }
 
+     public static String getFileNameNoExtension(File file) {
+         String fileName = file.getName();
+         int dot = fileName.lastIndexOf('.');
+         return (dot == -1) ? fileName : fileName.substring(0, dot);
+    }
+
     public static Set<String> getSrcDirRootNamespaces(File dir) {        
         Set<String> namespaces = new HashSet<String>();
         List<File> allDirFiles = new ArrayList();
 
-        Pattern pattern = Pattern.compile(".+?" + dir.getName() + "/(.+?)/.*");
+        Pattern topLevelDirNsPattern = Pattern.compile(".+?" + dir.getName() + "/(.+?)/.*");
         collectFiles(dir, allDirFiles);
         for (File f : allDirFiles) {
             if (f.getName().endsWith(".clj") ||
                 f.getName().endsWith(".cljc")) {
 
-                Matcher matcher = pattern.matcher(f.getAbsolutePath().replace("\\","/"));
-                    
-                if (matcher.find() && matcher.groupCount() >= 1) {
-                    String rootDir = matcher.group(1);
+                String fileAbsPath = f.getAbsolutePath().replace("\\","/");
+
+                Pattern topLevelFileNsPattern = Pattern.compile(".+?" + dir.getName() + "/" + f.getName());
+
+                Matcher topLevelDirNsMatcher = topLevelDirNsPattern.matcher(fileAbsPath);
+                Matcher topLevelFileNsMatcher = topLevelFileNsPattern.matcher(fileAbsPath);
+
+                if (topLevelDirNsMatcher.find() && topLevelDirNsMatcher.groupCount() >= 1) {
+                    String rootDir = topLevelDirNsMatcher.group(1);
                     namespaces.add(Compiler.demunge(rootDir));
-                  }
                 }
+                if (topLevelFileNsMatcher.find()) {
+                    String nsFile = getFileNameNoExtension(f);
+                    namespaces.add(Compiler.demunge(nsFile));
+                }
+            }
         }
         return namespaces;
     }
